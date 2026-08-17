@@ -1,0 +1,1521 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>AI 增强型的人｜文字精读版</title>
+  <style>
+    :root {
+      --paper: #eef2f5;
+      --paper-strong: #f9fbfc;
+      --ink: #12233d;
+      --muted: #667387;
+      --line: #c9d2dc;
+      --ai: #2767db;
+      --ai-soft: #dce9ff;
+      --human: #f2a93b;
+      --human-soft: #fff0d4;
+      --result: #17735d;
+      --result-soft: #d9f1ea;
+      --risk: #d75b4b;
+      --shadow: 0 28px 70px rgba(6, 20, 38, .28);
+      --radius: 1.8cqw;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { min-height: 100%; }
+
+    body {
+      margin: 0;
+      background: #0e1928;
+      color: var(--ink);
+      font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+      overflow-x: hidden;
+    }
+
+    button, select { font: inherit; }
+
+    button:focus-visible, select:focus-visible, input:focus-visible {
+      outline: 3px solid #8eb7ff;
+      outline-offset: 3px;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 390px);
+      gap: 28px;
+      align-items: center;
+      padding: 28px;
+    }
+
+    .preview-column {
+      min-width: 0;
+      display: grid;
+      place-items: center;
+    }
+
+    .stage-wrap {
+      width: min(76vw, calc(90vh * .75));
+      aspect-ratio: 3 / 4;
+      position: relative;
+      filter: drop-shadow(var(--shadow));
+    }
+
+    .stage {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+      container-type: inline-size;
+      background:
+        linear-gradient(rgba(18,35,61,.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(18,35,61,.045) 1px, transparent 1px),
+        var(--paper);
+      background-size: 5cqw 5cqw;
+      border: 1px solid rgba(255,255,255,.18);
+      isolation: isolate;
+    }
+
+    .stage::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background: linear-gradient(112deg, rgba(255,255,255,.64), transparent 52%);
+      pointer-events: none;
+    }
+
+    .scene {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      padding: 6.2cqw 6.4cqw 17cqw;
+      opacity: 0;
+      transform: translateY(1.8cqw);
+      pointer-events: none;
+    }
+
+    .scene.is-active {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+      animation: sceneIn .55s cubic-bezier(.2,.75,.25,1) both;
+    }
+
+    .scene-head {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 2.2cqw;
+      padding-bottom: 2.3cqw;
+      border-bottom: .16cqw solid var(--line);
+    }
+
+    .chapter-index {
+      width: 6.2cqw;
+      height: 6.2cqw;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background: var(--ink);
+      border-radius: 50%;
+      font: 700 2.4cqw/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .chapter-name {
+      font-size: 2.15cqw;
+      font-weight: 720;
+      letter-spacing: .04em;
+    }
+
+    .scene-count {
+      color: var(--muted);
+      font: 650 1.65cqw/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .scene-body {
+      min-height: 0;
+      display: grid;
+      align-content: center;
+      padding: 4.8cqw 0 2cqw;
+    }
+
+    .eyebrow {
+      margin: 0 0 2cqw;
+      color: var(--ai);
+      font: 750 1.7cqw/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+
+    h1, h2 {
+      margin-bottom: 2.6cqw;
+      text-wrap: balance;
+      letter-spacing: -.045em;
+      line-height: 1.08;
+    }
+
+    h1 { font-size: 7.25cqw; font-weight: 840; }
+    h2 { font-size: 5.65cqw; font-weight: 830; }
+
+    .lede {
+      max-width: 86%;
+      margin-bottom: 3cqw;
+      color: var(--muted);
+      font-size: 2.65cqw;
+      line-height: 1.58;
+    }
+
+    .big-quote {
+      margin: 0;
+      font-size: 4.7cqw;
+      font-weight: 790;
+      line-height: 1.38;
+      letter-spacing: -.03em;
+    }
+
+    .big-quote strong { color: var(--ai); }
+
+    .accent-human,
+    .accent-ai,
+    .accent-result,
+    .accent-risk {
+      padding-inline: .08em;
+      box-decoration-break: clone;
+      -webkit-box-decoration-break: clone;
+    }
+
+    .accent-human { color: #925a05; background: linear-gradient(transparent 66%, var(--human-soft) 0); }
+    .accent-ai { color: var(--ai); background: linear-gradient(transparent 66%, var(--ai-soft) 0); }
+    .accent-result { color: var(--result); background: linear-gradient(transparent 66%, var(--result-soft) 0); }
+    .accent-risk { color: var(--risk); background: linear-gradient(transparent 66%, #ffe3df 0); }
+
+    .line-icon {
+      width: 100%;
+      height: 100%;
+      display: block;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      overflow: visible;
+    }
+
+    .icon-badge {
+      width: 6.2cqw;
+      height: 6.2cqw;
+      flex: 0 0 6.2cqw;
+      display: inline-grid;
+      place-items: center;
+      padding: 1.25cqw;
+      border: .16cqw solid currentColor;
+      border-radius: 50%;
+      color: var(--ink);
+      background: var(--paper-strong);
+      position: relative;
+      vertical-align: middle;
+    }
+
+    /* 本版以排版和关系图为主，图标函数保留兼容但不参与画面。 */
+    .icon-badge { display: none; }
+
+    .icon-badge.is-mini {
+      width: 3.6cqw;
+      height: 3.6cqw;
+      flex-basis: 3.6cqw;
+      padding: .7cqw;
+      border-width: .13cqw;
+    }
+
+    .icon-badge.ai { color: var(--ai); background: var(--ai-soft); }
+    .icon-badge.human { color: #9a5b00; background: var(--human-soft); }
+    .icon-badge.result { color: var(--result); background: var(--result-soft); }
+    .icon-badge.risk { color: var(--risk); background: #ffe3df; }
+    .icon-badge.ink { color: var(--ink); background: #fff; }
+
+    .icon-with-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 1.2cqw;
+    }
+
+    .is-active .icon-badge.ai .line-icon { animation: iconBreathe 2.2s ease-in-out infinite; }
+    .is-active .icon-badge.human { animation: humanDecision .7s cubic-bezier(.2,.8,.25,1) .45s both; }
+    .is-active .icon-badge.result { animation: resultPulse 1.8s ease-in-out .6s infinite; }
+    .is-active .icon-badge.risk { animation: riskNudge 2.4s ease-in-out .8s infinite; }
+
+    .scene-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2cqw;
+      color: var(--muted);
+      font-size: 1.55cqw;
+    }
+
+    .scene-foot strong { color: var(--ink); }
+
+    .reveal, .stagger > * {
+      opacity: 0;
+      transform: translateY(2.2cqw);
+    }
+
+    .is-active .reveal,
+    .is-active .stagger > * {
+      animation: rise .58s cubic-bezier(.2,.75,.25,1) both;
+      animation-delay: var(--delay, .12s);
+    }
+
+    .is-active .stagger > *:nth-child(1) { animation-delay: .12s; }
+    .is-active .stagger > *:nth-child(2) { animation-delay: .24s; }
+    .is-active .stagger > *:nth-child(3) { animation-delay: .36s; }
+    .is-active .stagger > *:nth-child(4) { animation-delay: .48s; }
+    .is-active .stagger > *:nth-child(5) { animation-delay: .60s; }
+    .is-active .stagger > *:nth-child(6) { animation-delay: .72s; }
+    .is-active .stagger > *:nth-child(7) { animation-delay: .84s; }
+    .is-active .stagger > *:nth-child(8) { animation-delay: .96s; }
+
+    .thesis-grid {
+      display: grid;
+      grid-template-columns: .8fr auto 1.35fr;
+      align-items: center;
+      gap: 2cqw;
+      margin-top: 5cqw;
+    }
+
+    .thesis-box {
+      min-height: 17cqw;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      align-items: center;
+      justify-content: center;
+      place-items: center;
+      padding: 2.6cqw;
+      text-align: center;
+      border: .18cqw solid var(--line);
+      background: rgba(255,255,255,.66);
+      font-size: 2.85cqw;
+      font-weight: 760;
+      line-height: 1.35;
+    }
+
+    .thesis-box.is-old { color: var(--muted); }
+    .thesis-box.is-new { border-color: var(--ai); box-shadow: inset .7cqw 0 0 var(--ai); }
+    .thesis-arrow { color: var(--ai); font-size: 5.2cqw; font-weight: 800; }
+    .is-active .thesis-arrow, .is-active .loop-arrow { animation: arrowTravel 1.4s ease-in-out infinite; }
+
+    .micro-note {
+      margin: 3.2cqw 0 0;
+      padding: 1.8cqw 2.2cqw;
+      border-left: .5cqw solid var(--human);
+      color: var(--ink);
+      background: var(--human-soft);
+      font-size: 2.1cqw;
+      line-height: 1.45;
+    }
+
+    .division {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2.4cqw;
+      margin-top: 2.8cqw;
+    }
+
+    .lane {
+      min-height: 42cqw;
+      padding: 3cqw;
+      border-top: .65cqw solid;
+      background: rgba(255,255,255,.7);
+    }
+
+    .lane.ai { border-color: var(--ai); }
+    .lane.human { border-color: var(--human); }
+
+    .lane-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2.6cqw;
+      font-size: 3.3cqw;
+      font-weight: 810;
+    }
+
+    .lane-head small {
+      font: 700 1.45cqw/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--muted);
+    }
+
+    .task-list { display: grid; gap: 1.25cqw; }
+
+    .task-chip {
+      display: flex;
+      align-items: center;
+      gap: 1cqw;
+      padding: 1.35cqw 1.7cqw;
+      border: .14cqw solid var(--line);
+      background: var(--paper-strong);
+      font-size: 1.95cqw;
+      font-weight: 670;
+    }
+
+    .ai .task-chip::before { content: ""; width: .7cqw; height: .7cqw; border-radius: 50%; background: var(--ai); box-shadow: 0 0 0 .4cqw var(--ai-soft); }
+    .human .task-chip::before { content: ""; width: .9cqw; height: .9cqw; background: var(--human); transform: rotate(45deg); }
+
+    .compare {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2.5cqw;
+      margin-top: 2.4cqw;
+    }
+
+    .person-card {
+      padding: 3.1cqw;
+      background: rgba(255,255,255,.75);
+      border: .16cqw solid var(--line);
+      position: relative;
+    }
+
+    .person-card.enhanced { border-color: var(--result); box-shadow: inset 0 -.75cqw 0 var(--result); }
+
+    .person-label {
+      display: inline-block;
+      margin-bottom: 2.5cqw;
+      padding: .8cqw 1.2cqw;
+      background: var(--ink);
+      color: #fff;
+      font: 700 1.5cqw/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .enhanced .person-label { background: var(--result); }
+
+    .speech {
+      margin: 0;
+      font-size: 2.25cqw;
+      line-height: 1.55;
+    }
+
+    .speech strong { color: var(--result); }
+
+    .mini-chart {
+      height: 9cqw;
+      display: flex;
+      align-items: end;
+      gap: 1cqw;
+      margin-top: 2cqw;
+      padding: 1cqw 1.4cqw;
+      border-left: .15cqw solid var(--line);
+      border-bottom: .15cqw solid var(--line);
+    }
+
+    .mini-chart i { width: 2.5cqw; height: var(--h); background: var(--ai); transform-origin: bottom; }
+    .mini-chart i:last-child { background: var(--result); }
+    .is-active .mini-chart i { animation: barGrow .75s cubic-bezier(.2,.8,.25,1) both; animation-delay: var(--d); }
+
+    .loop {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      align-items: center;
+      gap: .8cqw;
+      margin-top: 5cqw;
+    }
+
+    .loop-node {
+      min-height: 11cqw;
+      display: grid;
+      place-items: center;
+      padding: 1cqw;
+      text-align: center;
+      border: .16cqw solid var(--line);
+      background: rgba(255,255,255,.82);
+      font-size: 1.65cqw;
+      font-weight: 720;
+      line-height: 1.25;
+    }
+
+    .loop-node:nth-child(odd) { transform: translateY(-1cqw); }
+    .loop-node:last-child { background: var(--result); color: #fff; border-color: var(--result); }
+    .loop-arrow { text-align: center; color: var(--ai); font-size: 2.2cqw; }
+
+    .process-flow {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.8cqw;
+      margin-top: 5cqw;
+      counter-reset: process;
+    }
+
+    .process-step {
+      counter-increment: process;
+      min-height: 14cqw;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      gap: 1.6cqw;
+      padding: 2.2cqw;
+      background: rgba(255,255,255,.8);
+      border-top: .45cqw solid var(--line);
+      font-size: 2.15cqw;
+      font-weight: 760;
+      line-height: 1.3;
+    }
+
+    .process-step::before {
+      content: counter(process, decimal-leading-zero);
+      color: var(--ai);
+      font: 800 1.6cqw/1 ui-monospace, monospace;
+    }
+
+    .process-step:nth-child(4),
+    .process-step:nth-child(5) { border-color: var(--human); }
+
+    .process-step:last-child {
+      color: #fff;
+      background: var(--result);
+      border-color: var(--result);
+    }
+
+    .process-step:last-child::before { color: #bfe8dc; }
+
+    .commodity-board {
+      display: grid;
+      grid-template-columns: 1fr .45fr;
+      gap: 3.2cqw;
+      margin-top: 3cqw;
+    }
+
+    .commodity-list { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2cqw; }
+
+    .commodity {
+      display: flex;
+      align-items: center;
+      gap: 1.4cqw;
+      padding: 1.7cqw;
+      background: rgba(255,255,255,.78);
+      border-bottom: .2cqw solid var(--line);
+      font-size: 1.85cqw;
+      font-weight: 650;
+    }
+
+    .price-meter {
+      min-height: 35cqw;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      padding: 2.5cqw;
+      color: #fff;
+      background: var(--ink);
+    }
+
+    .price-meter span { font-size: 1.45cqw; letter-spacing: .08em; }
+    .price-meter strong { align-self: center; font-size: 7.5cqw; line-height: 1; }
+    .price-meter b { color: #9bbdff; font-size: 1.8cqw; }
+
+    .knowledge-timeline {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2cqw;
+      margin-top: 4cqw;
+    }
+
+    .era {
+      min-height: 34cqw;
+      padding: 2.7cqw;
+      border-top: .7cqw solid var(--line);
+      background: rgba(255,255,255,.76);
+    }
+
+    .era:nth-child(2) { border-color: var(--ai); }
+    .era:nth-child(3) { border-color: var(--human); }
+    .era time { color: var(--muted); font: 700 1.5cqw/1 ui-monospace, monospace; }
+    .era h3 { margin: 4.5cqw 0 1.4cqw; font-size: 3cqw; line-height: 1.25; }
+    .era p { margin: 0; color: var(--muted); font-size: 1.75cqw; line-height: 1.45; }
+
+    .question-stack {
+      display: grid;
+      gap: 1.4cqw;
+      margin-top: 2.5cqw;
+      perspective: 900px;
+    }
+
+    .question {
+      display: grid;
+      grid-template-columns: 4cqw 1fr;
+      gap: 1.4cqw;
+      align-items: center;
+      padding: 1.5cqw 2cqw;
+      background: rgba(255,255,255,.82);
+      border-left: .5cqw solid var(--human);
+      font-size: 1.9cqw;
+      font-weight: 670;
+    }
+
+    .question b { color: var(--human); font: 800 1.45cqw/1 ui-monospace, monospace; }
+
+    .judgement-three {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2cqw;
+      margin: 3.5cqw 0;
+    }
+
+    .judgement-piece {
+      min-height: 19cqw;
+      display: grid;
+      align-content: space-between;
+      padding: 2.5cqw;
+      background: var(--paper-strong);
+      border: .16cqw solid var(--line);
+    }
+
+    .judgement-piece b { color: var(--human); font: 800 3.2cqw/1 ui-monospace, monospace; }
+    .judgement-piece span { font-size: 2.4cqw; font-weight: 770; line-height: 1.3; }
+
+    .decision-card {
+      padding: 2.5cqw 3cqw;
+      color: #fff;
+      background: var(--ink);
+      border-left: 1cqw solid var(--human);
+      font-size: 2.3cqw;
+      line-height: 1.5;
+    }
+
+    .value-table {
+      margin-top: 2.2cqw;
+      border-top: .2cqw solid var(--ink);
+    }
+
+    .value-row {
+      display: grid;
+      grid-template-columns: .9fr 1.35fr;
+      gap: 2.4cqw;
+      padding: 1.7cqw 1cqw;
+      border-bottom: .14cqw solid var(--line);
+      font-size: 1.75cqw;
+      line-height: 1.35;
+    }
+
+    .value-row > span:nth-child(2) { color: var(--muted); }
+    .value-row > span:last-child { color: var(--result); font-weight: 720; }
+
+    .sell-flow {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 2.2cqw;
+      align-items: center;
+      margin: 4cqw 0;
+    }
+
+    .sell-box {
+      min-height: 22cqw;
+      display: grid;
+      align-content: center;
+      padding: 2.8cqw;
+      background: rgba(255,255,255,.78);
+      border: .18cqw solid var(--line);
+    }
+
+    .sell-box:last-child { border-color: var(--result); }
+    .sell-box small { color: var(--muted); font-size: 1.5cqw; }
+    .sell-box strong { margin-top: 1.2cqw; font-size: 3cqw; line-height: 1.25; }
+    .sell-arrow { color: var(--result); font-size: 4.5cqw; }
+
+    .deliverables { display: flex; flex-wrap: wrap; gap: 1.3cqw; }
+    .deliverables span { display: inline-flex; align-items: center; gap: .8cqw; padding: 1.4cqw 1.7cqw; background: var(--result-soft); color: var(--result); font-size: 1.8cqw; font-weight: 720; }
+
+    .network {
+      position: relative;
+      height: 40cqw;
+      margin-top: 2cqw;
+      isolation: isolate;
+    }
+
+    .network::before, .network::after {
+      content: "";
+      position: absolute;
+      left: 16%;
+      right: 16%;
+      top: 50%;
+      height: .2cqw;
+      background: var(--line);
+      transform: rotate(20deg);
+      transform-origin: center;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .network::after { transform: rotate(-20deg); }
+
+    .person-node {
+      position: absolute;
+      width: 9cqw;
+      height: 9cqw;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--ink);
+      font-size: 1.55cqw;
+      font-weight: 720;
+      box-shadow: 0 0 0 1cqw rgba(18,35,61,.08);
+      z-index: 1;
+    }
+
+    .person-node .line-icon { display: none; }
+    .person-node small { font-size: 1.7cqw; }
+
+    .person-node:nth-child(1) { left: 7%; top: 10%; }
+    .person-node:nth-child(2) { right: 7%; top: 8%; }
+    .person-node:nth-child(3) { left: 10%; bottom: 6%; }
+    .person-node:nth-child(4) { right: 10%; bottom: 8%; }
+    .person-node.center { left: 50%; top: 50%; width: 13cqw; height: 13cqw; transform: translate(-50%,-50%); background: var(--human); color: var(--ink); }
+
+    .eq-tags {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1.1cqw;
+      margin-top: 2cqw;
+    }
+
+    .eq-tags span { padding: 1.1cqw 1.5cqw; background: rgba(255,255,255,.8); border: .13cqw solid var(--line); font-size: 1.6cqw; font-weight: 680; }
+
+    .iceberg {
+      display: grid;
+      grid-template-rows: auto .18cqw auto;
+      margin-top: 4cqw;
+    }
+
+    .said, .unsaid { width: 76%; margin-inline: auto; text-align: center; }
+    .said { padding: 2.5cqw; background: var(--ai-soft); color: var(--ai); font-size: 2.5cqw; font-weight: 780; clip-path: polygon(20% 0,80% 0,65% 100%,35% 100%); }
+    .waterline { background: var(--ai); }
+    .unsaid { padding: 5cqw 4cqw 4cqw; color: #fff; background: var(--ink); font-size: 3.1cqw; font-weight: 800; clip-path: polygon(35% 0,65% 0,100% 100%,0 100%); }
+
+    .capability-stack {
+      display: grid;
+      align-items: end;
+      gap: 1.25cqw;
+      width: 88%;
+      margin: 4cqw auto 0;
+    }
+
+    .stack-layer {
+      min-height: 12cqw;
+      display: grid;
+      grid-template-columns: 8cqw 1fr;
+      gap: 2cqw;
+      align-items: center;
+      padding: 2cqw 3cqw;
+      color: #fff;
+      background: var(--ink);
+    }
+
+    .stack-layer:nth-child(1) { width: 72%; margin-inline: auto; background: var(--human); color: var(--ink); }
+    .stack-layer:nth-child(2) { width: 86%; margin-inline: auto; background: var(--ai); }
+    .stack-layer:nth-child(3) { width: 100%; background: var(--ink); }
+    .stack-layer b { font: 800 2cqw/1 ui-monospace, monospace; }
+    .stack-layer span { font-size: 2.25cqw; font-weight: 750; }
+
+    .fork {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2.5cqw;
+      margin-top: 3.2cqw;
+    }
+
+    .fork-lane { padding: 3cqw; min-height: 38cqw; background: rgba(255,255,255,.78); border-top: .6cqw solid var(--line); }
+    .fork-lane:last-child { border-color: var(--result); }
+    .fork-lane h3 { font-size: 2.7cqw; line-height: 1.2; }
+    .fork-lane h3 { display: flex; align-items: center; gap: 1.2cqw; }
+    .fork-lane ul { margin: 2.2cqw 0 0; padding: 0; list-style: none; display: grid; gap: 1.35cqw; }
+    .fork-lane li { font-size: 1.75cqw; line-height: 1.35; }
+    .fork-lane li::before { content: "— "; color: var(--muted); }
+    .fork-lane:last-child li::before { content: "✓ "; color: var(--result); font-weight: 800; }
+
+    .split-question {
+      display: grid;
+      gap: 2cqw;
+      margin-top: 4cqw;
+    }
+
+    .split-question div {
+      display: flex;
+      align-items: center;
+      gap: 2cqw;
+      padding: 3cqw;
+      font-size: 3.1cqw;
+      font-weight: 790;
+      background: rgba(255,255,255,.78);
+      border-left: .7cqw solid var(--line);
+    }
+
+    .split-question div:last-child { border-color: var(--result); color: var(--result); }
+
+    .start-steps {
+      display: grid;
+      gap: 1.25cqw;
+      margin-top: 2.2cqw;
+      counter-reset: steps;
+    }
+
+    .start-step {
+      counter-increment: steps;
+      display: grid;
+      grid-template-columns: 5cqw 1fr;
+      gap: 1.5cqw;
+      align-items: center;
+      padding: 1.35cqw 1.7cqw;
+      background: rgba(255,255,255,.8);
+      border-bottom: .15cqw solid var(--line);
+      font-size: 1.75cqw;
+      font-weight: 670;
+    }
+
+    .start-step::before {
+      content: counter(steps, decimal-leading-zero);
+      color: var(--ai);
+      font: 780 1.55cqw/1 ui-monospace, monospace;
+    }
+
+    .review-three {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.8cqw;
+      margin-top: 4cqw;
+    }
+
+    .review-card {
+      min-height: 25cqw;
+      padding: 2.4cqw;
+      display: grid;
+      align-content: space-between;
+      background: rgba(255,255,255,.8);
+      border: .15cqw solid var(--line);
+    }
+
+    .review-card b { color: var(--ai); font: 800 3.2cqw/1 ui-monospace, monospace; }
+    .review-card span { font-size: 2.35cqw; font-weight: 760; line-height: 1.38; }
+
+    .final-statement {
+      display: grid;
+      gap: 2cqw;
+      margin-top: 4cqw;
+    }
+
+    .final-statement span {
+      display: flex;
+      align-items: center;
+      gap: 1.6cqw;
+      padding: 2.4cqw 2.8cqw;
+      color: var(--muted);
+      background: rgba(255,255,255,.72);
+      font-size: 2.45cqw;
+      font-weight: 700;
+      transform-origin: left center;
+    }
+
+    .final-statement span:last-child { color: #fff; background: var(--result); font-size: 3.2cqw; }
+
+    .outcome-rail {
+      position: absolute;
+      left: 6.4cqw;
+      right: 6.4cqw;
+      bottom: 8cqw;
+      z-index: 20;
+    }
+
+    .rail-line {
+      position: absolute;
+      left: 4%;
+      right: 4%;
+      top: 1.65cqw;
+      height: .28cqw;
+      background: var(--line);
+      z-index: 0;
+    }
+
+    .rail-fill {
+      width: 0;
+      height: 100%;
+      background: var(--result);
+      transition: width .55s ease;
+    }
+
+    .rail-nodes {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      z-index: 1;
+    }
+
+    .rail-node { text-align: center; color: var(--muted); font-size: 1.25cqw; font-weight: 690; }
+    .rail-dot { width: 3.3cqw; height: 3.3cqw; display: grid; place-items: center; margin: 0 auto .8cqw; padding: 0; border: .42cqw solid var(--paper); border-radius: 50%; color: var(--muted); background: var(--paper-strong); box-shadow: 0 0 0 .18cqw var(--line); }
+    .rail-dot .line-icon { display: none; }
+    .rail-node.is-done, .rail-node.is-current { color: var(--result); }
+    .rail-node.is-done .rail-dot { background: var(--result); box-shadow: 0 0 0 .18cqw var(--result); }
+    .rail-node.is-current .rail-dot { background: var(--human); box-shadow: 0 0 0 .18cqw var(--result), 0 0 0 1cqw rgba(23,115,93,.12); animation: pulse 1.6s ease-in-out infinite; }
+
+    .side-panel {
+      align-self: stretch;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      gap: 18px;
+      min-height: 0;
+      padding: 22px;
+      border: 1px solid rgba(255,255,255,.09);
+      background: rgba(255,255,255,.055);
+      color: #edf4ff;
+    }
+
+    .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .panel-head strong { font-size: 17px; }
+    .timecode { font: 700 13px/1 ui-monospace, monospace; color: #a9b8cc; }
+
+    .control-row { display: grid; grid-template-columns: 44px 1fr 44px 86px; gap: 9px; }
+
+    .control-row button, .control-row select, .secondary-button {
+      min-height: 42px;
+      border: 1px solid rgba(255,255,255,.13);
+      color: #edf4ff;
+      background: rgba(255,255,255,.08);
+      cursor: pointer;
+    }
+
+    .control-row button:hover, .secondary-button:hover { background: rgba(255,255,255,.14); }
+    .control-row select { padding: 0 8px; }
+
+    .timeline {
+      position: relative;
+      height: 8px;
+      margin-top: 12px;
+      background: rgba(255,255,255,.12);
+      cursor: pointer;
+    }
+
+    .timeline-fill { width: 0; height: 100%; background: #78a6ff; }
+
+    .narration-panel {
+      min-height: 0;
+      overflow: auto;
+      padding: 18px;
+      color: #d8e2ef;
+      background: rgba(5,14,25,.44);
+      border-left: 3px solid var(--human);
+    }
+
+    .narration-panel h3 { margin: 0 0 12px; color: #fff; font-size: 14px; letter-spacing: .08em; }
+    .narration-panel p { margin: 0; font-size: 15px; line-height: 1.8; white-space: pre-wrap; }
+
+    .chapters { display: flex; flex-wrap: wrap; gap: 7px; }
+    .chapter-button { padding: 7px 9px; border: 1px solid rgba(255,255,255,.1); color: #aebed1; background: transparent; font-size: 12px; cursor: pointer; }
+    .chapter-button.is-active { color: #fff; border-color: #78a6ff; background: rgba(120,166,255,.14); }
+
+    .keyboard-hint { margin: 0; color: #91a0b4; font-size: 12px; line-height: 1.5; }
+
+    body.clean { background: #0e1928; overflow: hidden; }
+    body.clean .app { display: grid; place-items: center; width: 100vw; height: 100vh; min-height: 0; padding: 0; }
+    body.clean .side-panel { display: none; }
+    body.clean .preview-column { width: 100%; height: 100%; display: grid; place-items: center; }
+    body.clean .stage-wrap { width: min(100vw, 75vh); height: auto; max-height: 100vh; aspect-ratio: 3 / 4; }
+    body.clean .stage { width: 100%; height: 100%; }
+
+    @keyframes sceneIn { from { opacity: 0; transform: translateY(2cqw); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes rise { from { opacity: 0; transform: translateY(2.2cqw); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.13); } }
+    @keyframes iconBreathe { 0%,100% { transform: scale(.92); opacity: .72; } 50% { transform: scale(1.08); opacity: 1; } }
+    @keyframes humanDecision { 0% { transform: rotate(-18deg) scale(.72); opacity: 0; } 70% { transform: rotate(5deg) scale(1.08); opacity: 1; } 100% { transform: rotate(0) scale(1); opacity: 1; } }
+    @keyframes resultPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(23,115,93,.16); } 50% { box-shadow: 0 0 0 1.1cqw rgba(23,115,93,0); } }
+    @keyframes riskNudge { 0%,88%,100% { transform: translateX(0); } 91% { transform: translateX(-.35cqw); } 95% { transform: translateX(.35cqw); } }
+    @keyframes arrowTravel { 0%,100% { transform: translateX(-.35cqw); opacity: .5; } 50% { transform: translateX(.5cqw); opacity: 1; } }
+    @keyframes barGrow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; padding: 16px; }
+      .stage-wrap { width: min(94vw, calc(82vh * .75)); }
+      .side-panel { width: min(94vw, 680px); justify-self: center; min-height: 520px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="preview-column">
+      <div class="stage-wrap">
+        <div class="stage" id="stage" aria-live="polite">
+          <div class="outcome-rail" aria-hidden="true">
+            <div class="rail-line"><div class="rail-fill" id="railFill"></div></div>
+            <div class="rail-nodes" id="railNodes"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="side-panel" aria-label="播放与阅读控制">
+      <div>
+        <div class="panel-head">
+          <strong id="panelTitle">AI 增强型的人</strong>
+          <span class="timecode" id="timecode">00:00 / 00:00</span>
+        </div>
+        <div class="timeline" id="timeline" role="slider" aria-label="播放进度" aria-valuemin="0" aria-valuemax="100" tabindex="0">
+          <div class="timeline-fill" id="timelineFill"></div>
+        </div>
+      </div>
+
+      <div class="control-row">
+        <button type="button" id="prevButton" aria-label="上一幕">←</button>
+        <button type="button" id="playButton">播放</button>
+        <button type="button" id="nextButton" aria-label="下一幕">→</button>
+        <select id="speedSelect" aria-label="播放速度">
+          <option value="0.75">0.75×</option>
+          <option value="1" selected>1.0×</option>
+          <option value="1.25">1.25×</option>
+          <option value="1.5">1.5×</option>
+        </select>
+      </div>
+
+      <div class="narration-panel">
+        <h3>本页说明</h3>
+        <p id="narration"></p>
+      </div>
+
+      <div>
+        <div class="chapters" id="chapters"></div>
+        <p class="keyboard-hint">空格：播放/暂停　← →：切换场景　R：重播当前场景<br>录屏模式：在网址后加 <code>?clean=1&amp;autoplay=1</code></p>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    const iconPaths = {
+      problem: `<path d="M8 8.5a4 4 0 1 1 5.8 3.55c-1.4.7-1.8 1.35-1.8 2.45"/><circle cx="12" cy="18" r=".7"/>`,
+      ai: `<circle cx="12" cy="6" r="2.2"/><circle cx="6" cy="16.5" r="2.2"/><circle cx="18" cy="16.5" r="2.2"/><path d="m10.9 7.9-3.8 6.7M13.1 7.9l3.8 6.7M8.2 16.5h7.6"/>`,
+      human: `<circle cx="12" cy="8" r="3"/><path d="M5.5 20c.7-4 3-6 6.5-6s5.8 2 6.5 6"/>`,
+      search: `<circle cx="10.5" cy="10.5" r="5.5"/><path d="m15 15 4.5 4.5"/>`,
+      file: `<path d="M7 3.5h7l4 4V20H7z"/><path d="M14 3.5V8h4M10 12h5M10 15.5h5"/>`,
+      calc: `<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01"/>`,
+      compare: `<path d="M12 4v16M6 7h12M7 7l-3 6h6L7 7Zm10 0-3 6h6l-3-6ZM8 20h8"/>`,
+      repeat: `<path d="M7 7h9l-2.5-2.5M17 17H8l2.5 2.5M18 7a7 7 0 0 1 .5 8M6 17a7 7 0 0 1-.5-8"/>`,
+      verify: `<path d="M12 3 19 6v5c0 4.6-2.6 8-7 10-4.4-2-7-5.4-7-10V6l7-3Z"/><path d="m8.5 12 2.2 2.2 4.8-5"/>`,
+      decision: `<path d="M12 4v5M12 9l-5 5v5M12 9l5 5v5"/><path d="m4.5 17 2.5 2.5L9.5 17M14.5 17l2.5 2.5 2.5-2.5"/>`,
+      execute: `<path d="m9 6 9 6-9 6V6Z"/><path d="M5 5v14"/>`,
+      target: `<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/><path d="M18 6 21 3M17 3h4v4"/>`,
+      knowledge: `<path d="M4 5.5c3-1 5.5-.5 8 1.5v13c-2.5-2-5-2.5-8-1.5v-13Zm16 0c-3-1-5.5-.5-8 1.5v13c2.5-2 5-2.5 8-1.5v-13Z"/>`,
+      risk: `<path d="m12 3 9 17H3L12 3Z"/><path d="M12 9v5M12 17.5h.01"/>`,
+      chat: `<path d="M4 5h16v11H9l-5 4V5Z"/><path d="M8 10h8M8 13h5"/>`,
+      trust: `<path d="m4 13 4-4 4 3 4-3 4 4M7 16l2 2 3-3 3 3 2-2"/><path d="M4 8h4M16 8h4"/>`,
+      layers: `<path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5M3 16l9 5 9-5"/>`,
+      chart: `<path d="M4 20V5M4 20h16"/><path d="m7 16 4-5 3 2 5-7"/>`,
+      filter: `<path d="M4 5h16l-6 7v6l-4 2v-8L4 5Z"/>`,
+      clock: `<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>`,
+      link: `<path d="m9 15-2 2a3.5 3.5 0 0 1-5-5l3-3a3.5 3.5 0 0 1 5 0M15 9l2-2a3.5 3.5 0 0 1 5 5l-3 3a3.5 3.5 0 0 1-5 0M8 12h8"/>`,
+      compass: `<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5 5-2Z"/>`
+    };
+
+    function icon(name, tone = "ink", size = "") {
+      return "";
+    }
+
+    const scenes = [
+      {
+        chapter: 0,
+        chapterName: "核心判断",
+        rail: 0,
+        title: "未来真正拉开差距的，是什么？",
+        narration: `未来真正拉开人与人差距的，不是“谁知道得更多”，而是谁能借助 AI，把一个模糊问题变成可靠结果，并让别人愿意采用这个结果。\n\n这比“学会几个提示词”深得多。`,
+        visual: `
+          <p class="eyebrow reveal">From knowledge to outcome</p>
+          <h1 class="reveal" style="--delay:.22s">不是谁知道得更多，<br>而是谁能把<span class="accent-ai">模糊问题</span><br>变成<span class="accent-result">可靠结果</span></h1>
+          <div class="thesis-grid stagger">
+            <div class="thesis-box is-old">${icon("knowledge", "ink")}<span>知道更多</span></div>
+            <div class="thesis-arrow">→</div>
+            <div class="thesis-box is-new">${icon("target", "result")}<span>借助 AI 解决问题<br>并让结果被采用</span></div>
+          </div>
+          <p class="micro-note reveal" style="--delay:.86s">这比“学会几个提示词”深得多。</p>`
+      },
+      {
+        chapter: 1,
+        chapterName: "AI 增强型的人",
+        rail: 1,
+        title: "不是把所有工作都交给 AI",
+        narration: `“AI 增强型的人”到底是什么？\n\n不是所有工作都交给 AI，而是把人和 AI 分工：\nAI 负责：搜索、整理、初稿、计算、比较、重复执行、快速试错。\n人负责：确定目标、理解情境、判断真假、权衡取舍、承担责任、推动落地。`,
+        visual: `
+          <p class="eyebrow reveal">01 · 人机分工</p>
+          <h2 class="reveal" style="--delay:.2s">AI 提高速度，<br>人决定<span class="accent-human">方向与责任</span></h2>
+          <div class="division stagger">
+            <section class="lane ai">
+              <div class="lane-head"><span class="icon-with-label">${icon("ai", "ai", "mini")}AI 负责</span><small>EXECUTE</small></div>
+              <div class="task-list">
+                <span class="task-chip">搜索与整理</span><span class="task-chip">初稿与计算</span><span class="task-chip">比较与重复执行</span><span class="task-chip">快速试错</span>
+              </div>
+            </section>
+            <section class="lane human">
+              <div class="lane-head"><span class="icon-with-label">${icon("human", "human", "mini")}人负责</span><small>OWN</small></div>
+              <div class="task-list">
+                <span class="task-chip">确定目标</span><span class="task-chip">理解情境</span><span class="task-chip">判断与取舍</span><span class="task-chip">担责并推动落地</span>
+              </div>
+            </section>
+          </div>`
+      },
+      {
+        chapter: 1,
+        chapterName: "AI 增强型的人",
+        rail: 1,
+        title: "同样是做一份市场方案",
+        narration: `例如，同样是做市场方案：\n\n普通执行者会说：“领导让我写一份方案，我把资料整理出来了。”\n\nAI 增强型的人会说：“我先判断当前真正的问题是获客成本过高，而不是曝光不足；然后让 AI 分析历史数据、研究竞品、生成三个方案，我验证关键数据后，选择成本最低的方案做小规模测试，最后交付结果和下一步建议。”`,
+        visual: `
+          <p class="eyebrow reveal">同一项任务 · 两种交付</p>
+          <h2 class="reveal" style="--delay:.2s">“做完文档”<br>不等于“解决问题”</h2>
+          <div class="compare stagger">
+            <article class="person-card">
+              <span class="person-label">普通执行者</span>
+              ${icon("file", "ink")}
+              <p class="speech">“领导让我写一份方案，<br>我把资料整理出来了。”</p>
+            </article>
+            <article class="person-card enhanced">
+              <span class="person-label">AI 增强型的人</span>
+              ${icon("chart", "result")}
+              <p class="speech">先诊断<strong>获客成本</strong>，再分析数据、比较方案、小规模测试，最后交付<strong>结果与下一步</strong>。</p>
+              <div class="mini-chart" aria-hidden="true"><i style="--h:42%;--d:.2s"></i><i style="--h:68%;--d:.32s"></i><i style="--h:54%;--d:.44s"></i><i style="--h:88%;--d:.56s"></i></div>
+            </article>
+          </div>`
+      },
+      {
+        chapter: 1,
+        chapterName: "AI 增强型的人",
+        rail: 4,
+        title: "真正的差别是一条完整闭环",
+        narration: `差别不在于“文档写得更快”，而在于后者完成了一个闭环：\n\n发现问题 → 调动资源 → 验证 → 决策 → 执行 → 交付结果。`,
+        visual: `
+          <p class="eyebrow reveal">Outcome loop</p>
+          <h2 class="reveal" style="--delay:.2s">文档只是中间产物，<br><span class="accent-result">闭环</span>才是工作成果</h2>
+          <div class="process-flow stagger">
+            <div class="process-step">发现问题</div>
+            <div class="process-step">调动资源</div>
+            <div class="process-step">验证证据</div>
+            <div class="process-step">作出决策</div>
+            <div class="process-step">推动执行</div>
+            <div class="process-step">交付结果</div>
+          </div>`
+      },
+      {
+        chapter: 2,
+        chapterName: "知识没有失效",
+        rail: 1,
+        title: "“IQ 被商品化”不等于知识没用",
+        narration: `“IQ 被商品化”不等于知识没用了。\n\n这句话最容易被误解。AI 会让很多过去依赖脑力速度的能力变得便宜，例如：写一封格式正确的邮件；整理会议纪要；翻译资料；查找知识；编写常规代码；制作基础方案；分析一个标准化表格。\n\n以前会这些，就能形成明显优势；现在多数人通过 AI 都能达到“基本合格”。`,
+        visual: `
+          <p class="eyebrow reveal">02 · 被压低的是标准化产出成本</p>
+          <h2 class="reveal" style="--delay:.2s">越来越便宜的是<br><span class="accent-ai">“基本合格”</span>的答案</h2>
+          <div class="commodity-board">
+            <div class="commodity-list stagger">
+              <div class="commodity">${icon("file", "ai", "mini")}邮件</div><div class="commodity">${icon("chat", "ai", "mini")}会议纪要</div><div class="commodity">${icon("repeat", "ai", "mini")}翻译</div><div class="commodity">${icon("search", "ai", "mini")}知识查找</div><div class="commodity">${icon("calc", "ai", "mini")}常规代码</div><div class="commodity">${icon("file", "ai", "mini")}基础方案</div><div class="commodity">${icon("layers", "ai", "mini")}标准表格</div><div class="commodity">${icon("chart", "ai", "mini")}初步分析</div>
+            </div>
+            <div class="price-meter reveal" style="--delay:.72s"><span>产出门槛</span><strong>↓</strong><b>基本合格</b></div>
+          </div>`
+      },
+      {
+        chapter: 2,
+        chapterName: "知识没有失效",
+        rail: 2,
+        title: "知识的作用正在发生变化",
+        narration: `但这不代表不需要知识。恰恰相反，没有基础知识的人，很难发现 AI 一本正经地说错了。\n\n未来知识的作用会发生变化：\n过去：靠记住知识直接生产答案。\n现在：靠知识判断 AI 的答案是否可信。\n未来：靠知识提出更好的问题、识别例外、进行关键决策。\n\n所以真正贬值的是“只会复述标准答案”，而不是专业能力本身。`,
+        visual: `
+          <p class="eyebrow reveal">知识没有退场 · 它换了位置</p>
+          <h2 class="reveal" style="--delay:.2s">从“生产答案”<br>走向“<span class="accent-human">判断答案</span>”</h2>
+          <div class="knowledge-timeline stagger">
+            <article class="era"><time>过去</time>${icon("knowledge", "ink")}<h3>记住知识</h3><p>直接生产答案</p></article>
+            <article class="era"><time>现在</time>${icon("verify", "ai")}<h3>核验答案</h3><p>判断 AI 是否可信</p></article>
+            <article class="era"><time>未来</time>${icon("compass", "human")}<h3>提出问题</h3><p>识别例外，支持决策</p></article>
+          </div>
+          <p class="micro-note reveal" style="--delay:.78s">真正贬值的是复述标准答案，不是专业能力。</p>`
+      },
+      {
+        chapter: 3,
+        chapterName: "判断力会变贵",
+        rail: 2,
+        title: "现实问题通常没有标准答案",
+        narration: `为什么“判断力”会变贵？\n\nAI 很擅长回答“可以怎么做”，却很难替你决定“在这个具体环境中应该怎么做”。\n\n现实问题往往没有标准答案：\n是先降价，还是先改善产品？\n这个客户值得继续跟进吗？\n这项数据是真实需求，还是短期噪声？\n一个功能虽然能做，但审核风险是否值得承担？\nAI 生成的方案很完整，可用户真的需要吗？`,
+        visual: `
+          <p class="eyebrow reveal">03 · Context changes the answer</p>
+          <h2 class="reveal" style="--delay:.2s">AI 能告诉你“可以怎么做”，<br>却不能轻易替你决定<br><span class="accent-human">“此刻应该怎么做”</span></h2>
+          <div class="question-stack stagger">
+            <div class="question"><b>Q1</b>${icon("compare", "human", "mini")}<span>先降价，还是先改善产品？</span></div>
+            <div class="question"><b>Q2</b>${icon("chart", "ai", "mini")}<span>真实需求，还是短期噪声？</span></div>
+            <div class="question"><b>Q3</b>${icon("risk", "risk", "mini")}<span>功能能做，审核风险值得吗？</span></div>
+            <div class="question"><b>Q4</b>${icon("human", "human", "mini")}<span>方案很完整，用户真的需要吗？</span></div>
+          </div>`
+      },
+      {
+        chapter: 3,
+        chapterName: "判断力会变贵",
+        rail: 3,
+        title: "判断力来自三样东西",
+        narration: `判断力来自三样东西：\n对具体场景的理解；\n对后果的预估；\n对结果承担责任。\n\nAI 可以提供十个方案，但最终必须有人说：“根据现有证据，我建议选第三个。理由是什么，风险是什么，出现问题如何处理。”\n\n这个“拍板并负责”的能力，会越来越重要。`,
+        visual: `
+          <p class="eyebrow reveal">判断不是灵感 · 是责任结构</p>
+          <h2 class="reveal" style="--delay:.2s">三个部分，组成一次<br><span class="accent-human">可以负责的决定</span></h2>
+          <div class="judgement-three stagger">
+            <div class="judgement-piece"><b>01</b>${icon("compass", "human")}<span>理解具体场景</span></div>
+            <div class="judgement-piece"><b>02</b>${icon("risk", "risk")}<span>预估可能后果</span></div>
+            <div class="judgement-piece"><b>03</b>${icon("target", "result")}<span>对结果负责</span></div>
+          </div>
+          <div class="decision-card reveal" style="--delay:.75s">“根据现有证据，我建议选第三个。理由、风险和应对方式如下。”</div>`
+      },
+      {
+        chapter: 4,
+        chapterName: "从知识到结果",
+        rail: 4,
+        title: "竞争力从‘我会’转向‘我能解决’",
+        narration: `从“提供知识”转向“提供结果”。\n\n以前很多人的价值是：“我会做这个。”\n未来更有竞争力的表达是：“我能帮你解决这个问题，并交付可验证的结果。”`,
+        visual: `
+          <p class="eyebrow reveal">04 · Value moves downstream</p>
+          <h2 class="reveal" style="--delay:.2s">别只证明“我会”，<br>要证明“<span class="accent-result">我能解决</span>”</h2>
+          <div class="sell-flow stagger">
+            <div class="sell-box">${icon("file", "ink")}<small>过去的表达</small><strong>我会做这个</strong></div>
+            <div class="sell-arrow">→</div>
+            <div class="sell-box">${icon("target", "result")}<small>未来的表达</small><strong>我能交付可验证的结果</strong></div>
+          </div>`
+      },
+      {
+        chapter: 4,
+        chapterName: "从知识到结果",
+        rail: 4,
+        title: "同一种能力，换一种价值表达",
+        narration: `例如：\n我会写文案 → 我能提高咨询量或转化率。\n我会做表格 → 我能发现经营问题并给出动作。\n我会画图 → 我能形成可直接发布和测试的视觉方案。\n我会写代码 → 我能把需求做成稳定可用的产品。\n我懂很多政策 → 我能判断当前方案的风险并帮助落地。\n我会使用 AI → 我能用 AI 更快、更便宜地交付可靠结果。`,
+        visual: `
+          <p class="eyebrow reveal">能力不变 · 价值向结果移动</p>
+          <h2 class="reveal" style="--delay:.2s">从技能清单，<br>翻译成<span class="accent-result">业务结果</span></h2>
+          <div class="value-table stagger">
+            <div class="value-row">${icon("file", "ink", "mini")}<span>我会写文案</span><span>提高咨询量或转化率</span></div>
+            <div class="value-row">${icon("chart", "ink", "mini")}<span>我会做表格</span><span>发现经营问题并给出动作</span></div>
+            <div class="value-row">${icon("layers", "ink", "mini")}<span>我会画图</span><span>形成可发布、可测试的视觉方案</span></div>
+            <div class="value-row">${icon("execute", "ink", "mini")}<span>我会写代码</span><span>把需求做成稳定产品</span></div>
+            <div class="value-row">${icon("risk", "ink", "mini")}<span>我懂政策</span><span>判断风险并帮助落地</span></div>
+            <div class="value-row">${icon("ai", "ai", "mini")}<span>我会使用 AI</span><span>更快、更便宜地交付可靠结果</span></div>
+          </div>`
+      },
+      {
+        chapter: 4,
+        chapterName: "从知识到结果",
+        rail: 4,
+        title: "尽量不要只售卖工时",
+        narration: `所以未来不应只售卖“工时”，而应尽量售卖：问题诊断；方案选择；执行闭环；最终结果；持续改进。`,
+        visual: `
+          <p class="eyebrow reveal">不要只卖时间 · 要卖问题闭环</p>
+          <h2 class="reveal" style="--delay:.2s">更有价值的交付，<br>发生在工作链条的<span class="accent-result">后半段</span></h2>
+          <div class="deliverables stagger">
+            <span>${icon("search", "result", "mini")}问题诊断</span><span>${icon("decision", "result", "mini")}方案选择</span><span>${icon("repeat", "result", "mini")}执行闭环</span><span>${icon("target", "result", "mini")}最终结果</span><span>${icon("chart", "result", "mini")}持续改进</span>
+          </div>
+          <p class="big-quote reveal" style="--delay:.72s; margin-top:6cqw">时间可以计量，<br><strong>结果才能被采用。</strong></p>`
+      },
+      {
+        chapter: 5,
+        chapterName: "EQ、沟通和信任",
+        rail: 4,
+        title: "方案越来越多，采用才是真正的瓶颈",
+        narration: `为什么 EQ、沟通和信任更重要？\n\n当大家都能使用相似的 AI，方案本身会越来越多，真正稀缺的是“让一群人相信并执行一个方案”。\n\n这里的 EQ 不是简单地“会说好听话”，而是：能听出对方没有明说的顾虑；能把复杂事情解释清楚；能处理分歧和情绪；能协调不同人的利益；能让别人愿意与你长期合作；知道什么时候推进、什么时候退一步；出问题时不甩锅。`,
+        visual: `
+          <p class="eyebrow reveal">05 · Adoption is a human problem</p>
+          <h2 class="reveal" style="--delay:.2s">稀缺的不是第十一份方案，<br>而是让一群人<span class="accent-human">相信并执行</span></h2>
+          <div class="network reveal" style="--delay:.35s">
+            <div class="person-node"><small>客户</small></div><div class="person-node"><small>产品</small></div><div class="person-node"><small>销售</small></div><div class="person-node"><small>交付</small></div><div class="person-node center"><small>共识</small></div>
+          </div>
+          <div class="eq-tags stagger"><span>听出顾虑</span><span>解释复杂问题</span><span>处理分歧</span><span>协调利益</span><span>长期信任</span><span>不甩锅</span></div>`
+      },
+      {
+        chapter: 5,
+        chapterName: "EQ、沟通和信任",
+        rail: 2,
+        title: "真正的阻力经常没有被说出口",
+        narration: `AI 可以生成一份完美的合作方案，但它无法自动获得客户的信任，也很难真正理解：\n\n“对方嘴上说价格贵，实际上可能是担心交付不稳定。”\n\n谁能识别这种真实阻力，并推动事情继续向前，谁的价值就更高。`,
+        visual: `
+          <p class="eyebrow reveal">Listen below the words</p>
+          <h2 class="reveal" style="--delay:.2s">听见对方说的，<br>也要看见<span class="accent-human">没有说出口的</span></h2>
+          <div class="iceberg reveal" style="--delay:.4s">
+            <div class="said">${icon("chat", "ai", "mini")}“价格太贵”</div><div class="waterline"></div><div class="unsaid">${icon("risk", "risk", "mini")}真正担心的是<br>交付不稳定</div>
+          </div>`
+      },
+      {
+        chapter: 6,
+        chapterName: "三层能力",
+        rail: 4,
+        title: "普通人最值得建立的能力组合",
+        narration: `普通人最值得建立的三层能力。\n\n第一层：一项真实的专业能力。例如运营、销售、设计、财务、教育、法律、产品、照护、维修等。不能只有 AI，没有专业场景。\n\n第二层：AI 调度能力。包括：把复杂任务拆成步骤；给 AI 提供充分背景；让不同工具协同工作；检查事实和结果；建立可以重复使用的工作流。\n\n第三层：人类杠杆能力。包括：判断；沟通；谈判；审美；同理心；组织协调；建立信任；承担结果。`,
+        visual: `
+          <p class="eyebrow reveal">06 · Three-layer capability stack</p>
+          <h2 class="reveal" style="--delay:.2s">不是单点最强，<br>而是把三层能力<span class="accent-result">连起来</span></h2>
+          <div class="capability-stack stagger">
+            <div class="stack-layer"><b>${icon("trust", "human", "mini")}03</b><span>人类杠杆：判断、沟通、信任、担责</span></div>
+            <div class="stack-layer"><b>${icon("ai", "ai", "mini")}02</b><span>AI 调度：拆解、协同、核验、复用</span></div>
+            <div class="stack-layer"><b>${icon("compass", "ink", "mini")}01</b><span>专业场景：真实业务与具体问题</span></div>
+          </div>`
+      },
+      {
+        chapter: 6,
+        chapterName: "三层能力",
+        rail: 4,
+        title: "最强的不是单独某一层",
+        narration: `最有竞争力的人不是单独在某一层最强，而是能把三层连起来：\n\n懂真实业务，又能调动 AI，还能让人相信并采用结果。`,
+        visual: `
+          <p class="eyebrow reveal">The combined advantage</p>
+          <h1 class="reveal" style="--delay:.2s">懂真实业务<br><span class="accent-ai">能调动 AI</span><br><span class="accent-human">让人愿意采用</span></h1>
+          <div class="thesis-grid stagger" style="grid-template-columns:1fr auto 1fr auto 1fr">
+            <div class="thesis-box">${icon("compass", "ink")}<span>专业</span></div><div class="thesis-arrow">×</div><div class="thesis-box is-new">${icon("ai", "ai")}<span>AI</span></div><div class="thesis-arrow">×</div><div class="thesis-box" style="border-color:var(--human)">${icon("trust", "human")}<span>信任</span></div>
+          </div>`
+      },
+      {
+        chapter: 7,
+        chapterName: "非常现实的变化",
+        rail: 3,
+        title: "真正危险的是长期停留在标准动作里",
+        narration: `一个非常现实的变化。\n\n未来更容易被替代的，未必是能力最差的人，而可能是那些长期停留在“接收明确指令—完成标准动作”的人。\n\n相对更安全、更有价值的是能够处理模糊任务的人：目标不明确时，能主动澄清；信息不完整时，能寻找证据；AI 给出多个方案时，能作出选择；过程中出现变化时，能调整方向；最终能把事情推到完成。`,
+        visual: `
+          <p class="eyebrow reveal">07 · Standard task vs ambiguous problem</p>
+          <h2 class="reveal" style="--delay:.2s">更容易被替代的，<br>可能是只等待<span class="accent-risk">明确指令</span>的人</h2>
+          <div class="fork stagger">
+            <section class="fork-lane"><h3>${icon("repeat", "ink", "mini")}标准动作</h3><ul><li>接收明确指令</li><li>完成规定步骤</li><li>交付中间产物</li></ul></section>
+            <section class="fork-lane"><h3>${icon("compass", "result", "mini")}模糊任务</h3><ul><li>主动澄清目标</li><li>寻找证据</li><li>作出选择</li><li>变化时调整</li><li>推动到完成</li></ul></section>
+          </div>`
+      },
+      {
+        chapter: 7,
+        chapterName: "非常现实的变化",
+        rail: 4,
+        title: "真正的分界线可能不在工具",
+        narration: `所以真正的分界线可能不是：“会不会使用 AI。”\n\n而是：“能不能借助 AI 独立负责一件事。”`,
+        visual: `
+          <p class="eyebrow reveal">The real dividing line</p>
+          <h2 class="reveal" style="--delay:.2s">真正的分界线，<br>可能不在“会不会用”</h2>
+          <div class="split-question stagger">
+            <div>${icon("ai", "ai")}<span>会不会使用 AI？</span></div>
+            <div>${icon("target", "result")}<span>能不能借助 AI<br>独立负责一件事？</span></div>
+          </div>`
+      },
+      {
+        chapter: 8,
+        chapterName: "怎么开始",
+        rail: 4,
+        title: "从一件重复发生的小事开始",
+        narration: `普通人可以怎么开始？\n\n不用先学一大堆 AI 理论，直接从每天的真实任务开始：\n找出一件每周重复两次以上的工作。\n让 AI 帮你拆解、整理或生成初稿。\n不直接使用，逐项检查哪里错了。\n把你的判断标准告诉 AI，再做一次。\n记录一套下次可以复用的流程。\n最后计算节省了多少时间、质量提高在哪里。`,
+        visual: `
+          <p class="eyebrow reveal">08 · Start with real work</p>
+          <h2 class="reveal" style="--delay:.2s">不用先学完理论，<br>从一件<span class="accent-ai">每周重复两次</span>的工作开始</h2>
+          <div class="start-steps stagger">
+            <div class="start-step">${icon("repeat", "ink", "mini")}<span>找到重复任务</span></div><div class="start-step">${icon("ai", "ai", "mini")}<span>让 AI 拆解或生成初稿</span></div><div class="start-step">${icon("verify", "result", "mini")}<span>逐项检查错误</span></div><div class="start-step">${icon("decision", "human", "mini")}<span>补充你的判断标准</span></div><div class="start-step">${icon("layers", "ink", "mini")}<span>记录可复用流程</span></div><div class="start-step">${icon("chart", "result", "mini")}<span>计算时间和质量变化</span></div>
+          </div>`
+      },
+      {
+        chapter: 8,
+        chapterName: "怎么开始",
+        rail: 4,
+        title: "练习重点不是答案有多漂亮",
+        narration: `练习重点不是“AI 回答得多漂亮”，而是三个问题：\n\n它帮我完成了什么真实结果？\n哪些环节仍然必须由我判断？\n下次能否更稳定、更快地重复？`,
+        visual: `
+          <p class="eyebrow reveal">Review the outcome, not the prose</p>
+          <h2 class="reveal" style="--delay:.2s">每次用完 AI，<br>只复盘这<span class="accent-human">三个问题</span></h2>
+          <div class="review-three stagger">
+            <div class="review-card"><b>01</b>${icon("target", "result")}<span>完成了什么真实结果？</span></div>
+            <div class="review-card"><b>02</b>${icon("decision", "human")}<span>哪些环节仍需我判断？</span></div>
+            <div class="review-card"><b>03</b>${icon("repeat", "ai")}<span>下次能否更稳定、更快？</span></div>
+          </div>`
+      },
+      {
+        chapter: 9,
+        chapterName: "结论",
+        rail: 4,
+        title: "AI 增强不是放弃责任",
+        narration: `最终，AI 增强型的人并不是“什么都让 AI 做”，而是：\n\n比以前更快地理解问题，更低成本地试错，更可靠地作出判断，并对最后的结果负责。`,
+        visual: `
+          <p class="eyebrow reveal">Final · What “AI-enhanced” really means</p>
+          <h2 class="reveal" style="--delay:.2s">不是“什么都让 AI 做”，<br>而是把人的责任放在<span class="accent-result">更关键的位置</span></h2>
+          <div class="final-statement stagger">
+            <span>${icon("search", "ink", "mini")}更快地理解问题</span>
+            <span>${icon("repeat", "ai", "mini")}更低成本地试错</span>
+            <span>${icon("decision", "human", "mini")}更可靠地作出判断</span>
+            <span>${icon("target", "result", "mini")}对最后的结果负责</span>
+          </div>`
+      }
+    ];
+
+    const railLabels = ["模糊问题", "调动 AI", "验证", "决策执行", "可靠结果"];
+    const railIconNames = ["problem", "ai", "verify", "decision", "target"];
+    const stage = document.getElementById("stage");
+    const narration = document.getElementById("narration");
+    const panelTitle = document.getElementById("panelTitle");
+    const timecode = document.getElementById("timecode");
+    const playButton = document.getElementById("playButton");
+    const prevButton = document.getElementById("prevButton");
+    const nextButton = document.getElementById("nextButton");
+    const speedSelect = document.getElementById("speedSelect");
+    const timeline = document.getElementById("timeline");
+    const timelineFill = document.getElementById("timelineFill");
+    const chapters = document.getElementById("chapters");
+    const railNodes = document.getElementById("railNodes");
+    const railFill = document.getElementById("railFill");
+
+    let index = 0;
+    let isPlaying = false;
+    let sceneStartedAt = performance.now();
+    let sceneElapsed = 0;
+    let speed = 1;
+    let animationFrame = null;
+
+    const cleanMode = new URLSearchParams(location.search).get("clean") === "1";
+    const autoplay = new URLSearchParams(location.search).get("autoplay") === "1";
+    if (cleanMode) document.body.classList.add("clean");
+
+    const charCount = (text) => text.replace(/\s/g, "").length;
+    const durationFor = (scene) => Math.max(9000, Math.min(42000, (charCount(scene.narration) / 4.1 + 2.2) * 1000));
+    const durations = scenes.map(durationFor);
+    const totalDuration = durations.reduce((sum, value) => sum + value, 0);
+    const sceneOffsets = durations.map((_, i) => durations.slice(0, i).reduce((sum, value) => sum + value, 0));
+
+    function formatTime(milliseconds) {
+      const seconds = Math.max(0, Math.round(milliseconds / 1000));
+      const minutes = Math.floor(seconds / 60);
+      return `${String(minutes).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+    }
+
+    function sceneTemplate(scene, sceneIndex) {
+      return `
+        <section class="scene" data-scene="${sceneIndex}" aria-label="${scene.title}">
+          <header class="scene-head">
+            <span class="chapter-index">${String(scene.chapter).padStart(2, "0")}</span>
+            <span class="chapter-name">${scene.chapterName}</span>
+            <span class="scene-count">${String(sceneIndex + 1).padStart(2, "0")} / ${String(scenes.length).padStart(2, "0")}</span>
+          </header>
+          <div class="scene-body">${scene.visual}</div>
+          <footer class="scene-foot"><span>AI 增强型的人</span><strong>${scene.title}</strong></footer>
+        </section>`;
+    }
+
+    stage.insertAdjacentHTML("afterbegin", scenes.map(sceneTemplate).join(""));
+    const sceneElements = [...stage.querySelectorAll(".scene")];
+
+    railNodes.innerHTML = railLabels.map((label, i) => `<div class="rail-node" data-rail="${i}"><div class="rail-dot"></div>${label}</div>`).join("");
+
+    const chapterMap = [];
+    scenes.forEach((scene, i) => {
+      if (!chapterMap.some(item => item.chapter === scene.chapter)) chapterMap.push({ chapter: scene.chapter, name: scene.chapterName, index: i });
+    });
+    chapters.innerHTML = chapterMap.map(item => `<button class="chapter-button" type="button" data-target="${item.index}">${String(item.chapter).padStart(2, "0")} ${item.name}</button>`).join("");
+
+    function updateRail(step) {
+      const nodes = [...railNodes.querySelectorAll(".rail-node")];
+      nodes.forEach((node, i) => {
+        node.classList.toggle("is-done", i < step);
+        node.classList.toggle("is-current", i === step);
+      });
+      railFill.style.width = `${step / (railLabels.length - 1) * 92}%`;
+    }
+
+    function renderScene(nextIndex, resetElapsed = true) {
+      index = (nextIndex + scenes.length) % scenes.length;
+      sceneElements.forEach((element, i) => element.classList.toggle("is-active", i === index));
+      const scene = scenes[index];
+      narration.textContent = scene.narration;
+      panelTitle.textContent = `${String(scene.chapter).padStart(2, "0")} · ${scene.chapterName}`;
+      updateRail(scene.rail);
+      [...chapters.querySelectorAll(".chapter-button")].forEach(button => {
+        const target = Number(button.dataset.target);
+        button.classList.toggle("is-active", scenes[target].chapter === scene.chapter);
+      });
+      if (resetElapsed) sceneElapsed = 0;
+      sceneStartedAt = performance.now();
+      updateProgress();
+    }
+
+    function currentGlobalElapsed() {
+      return sceneOffsets[index] + Math.min(sceneElapsed, durations[index]);
+    }
+
+    function updateProgress() {
+      const global = currentGlobalElapsed();
+      timelineFill.style.width = `${global / totalDuration * 100}%`;
+      timecode.textContent = `${formatTime(global)} / ${formatTime(totalDuration)}`;
+      timeline.setAttribute("aria-valuenow", String(Math.round(global / totalDuration * 100)));
+    }
+
+    function tick(now) {
+      if (!isPlaying) return;
+      sceneElapsed += (now - sceneStartedAt) * speed;
+      sceneStartedAt = now;
+      if (sceneElapsed >= durations[index]) {
+        if (index === scenes.length - 1) {
+          isPlaying = false;
+          playButton.textContent = "重播";
+          sceneElapsed = durations[index];
+          updateProgress();
+          return;
+        }
+        renderScene(index + 1, true);
+      }
+      updateProgress();
+      animationFrame = requestAnimationFrame(tick);
+    }
+
+    function play() {
+      if (index === scenes.length - 1 && sceneElapsed >= durations[index]) renderScene(0, true);
+      isPlaying = true;
+      sceneStartedAt = performance.now();
+      playButton.textContent = "暂停";
+      cancelAnimationFrame(animationFrame);
+      animationFrame = requestAnimationFrame(tick);
+    }
+
+    function pause() {
+      isPlaying = false;
+      playButton.textContent = "播放";
+      cancelAnimationFrame(animationFrame);
+    }
+
+    function togglePlay() { isPlaying ? pause() : play(); }
+
+    function seekGlobal(targetMilliseconds) {
+      const safeTarget = Math.max(0, Math.min(totalDuration - 1, targetMilliseconds));
+      let nextIndex = durations.findIndex((duration, i) => safeTarget < sceneOffsets[i] + duration);
+      if (nextIndex < 0) nextIndex = scenes.length - 1;
+      renderScene(nextIndex, false);
+      sceneElapsed = safeTarget - sceneOffsets[nextIndex];
+      sceneStartedAt = performance.now();
+      updateProgress();
+    }
+
+    playButton.addEventListener("click", togglePlay);
+    prevButton.addEventListener("click", () => renderScene(index - 1, true));
+    nextButton.addEventListener("click", () => renderScene(index + 1, true));
+    speedSelect.addEventListener("change", () => { speed = Number(speedSelect.value); sceneStartedAt = performance.now(); });
+    chapters.addEventListener("click", event => {
+      const button = event.target.closest("button[data-target]");
+      if (button) renderScene(Number(button.dataset.target), true);
+    });
+    timeline.addEventListener("click", event => {
+      const rect = timeline.getBoundingClientRect();
+      seekGlobal((event.clientX - rect.left) / rect.width * totalDuration);
+    });
+    timeline.addEventListener("keydown", event => {
+      if (event.key === "ArrowRight") seekGlobal(currentGlobalElapsed() + 10000);
+      if (event.key === "ArrowLeft") seekGlobal(currentGlobalElapsed() - 10000);
+    });
+    window.addEventListener("keydown", event => {
+      if (["INPUT", "SELECT", "TEXTAREA", "BUTTON"].includes(document.activeElement?.tagName)) return;
+      if (event.code === "Space") { event.preventDefault(); togglePlay(); }
+      if (event.key === "ArrowRight") renderScene(index + 1, true);
+      if (event.key === "ArrowLeft") renderScene(index - 1, true);
+      if (event.key.toLowerCase() === "r") renderScene(index, true);
+    });
+
+    renderScene(0, true);
+    if (autoplay) play();
+  </script>
+</body>
+</html>

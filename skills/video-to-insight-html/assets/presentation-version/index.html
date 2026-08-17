@@ -1,0 +1,1247 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>AI 增强型的人｜图形速览版</title>
+  <style>
+    :root {
+      --paper: #f1f4f6;
+      --white: #fbfcfd;
+      --ink: #13233c;
+      --muted: #748091;
+      --line: #cbd3dc;
+      --ai: #3269d8;
+      --ai-soft: #dfe9ff;
+      --human: #f1ad3f;
+      --human-soft: #fff0d5;
+      --result: #1f765f;
+      --result-soft: #dcefe9;
+      --risk: #d85e50;
+      --risk-soft: #f8ded9;
+      --shadow: 0 28px 80px rgba(3, 14, 31, .3);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #0d1827;
+      font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+      overflow-x: hidden;
+    }
+
+    button, select { font: inherit; }
+    button:focus-visible, select:focus-visible, input:focus-visible {
+      outline: 3px solid #8ab4ff;
+      outline-offset: 3px;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(290px, 380px);
+      gap: 26px;
+      align-items: center;
+      padding: 26px;
+    }
+
+    .preview {
+      min-width: 0;
+      display: grid;
+      place-items: center;
+    }
+
+    .stage-wrap {
+      width: min(74vw, calc(90vh * .75));
+      aspect-ratio: 3 / 4;
+      filter: drop-shadow(var(--shadow));
+    }
+
+    .stage {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+      container-type: inline-size;
+      background:
+        linear-gradient(rgba(19,35,60,.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(19,35,60,.045) 1px, transparent 1px),
+        var(--paper);
+      background-size: 6cqw 6cqw;
+      isolation: isolate;
+    }
+
+    .stage::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background: linear-gradient(135deg, rgba(255,255,255,.72), transparent 58%);
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-rows: auto 33cqw 1fr auto;
+      padding: 5.8cqw 6.4cqw 7cqw;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(1.4cqw);
+    }
+
+    .slide.is-active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: none;
+      animation: slideIn .42s cubic-bezier(.2,.75,.25,1) both;
+    }
+
+    .slide-head {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 1.8cqw;
+      align-items: center;
+      padding-bottom: 2cqw;
+      border-bottom: .14cqw solid var(--line);
+    }
+
+    .chapter-number {
+      width: 5.4cqw;
+      height: 5.4cqw;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background: var(--ink);
+      border-radius: 50%;
+      font: 800 2cqw/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .chapter-name {
+      font-size: 1.95cqw;
+      font-weight: 760;
+      letter-spacing: .025em;
+    }
+
+    .slide-count {
+      color: var(--muted);
+      font: 700 1.5cqw/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .claim {
+      align-self: center;
+      max-width: 96%;
+      margin: 0;
+      font-size: 5.8cqw;
+      font-weight: 850;
+      line-height: 1.1;
+      letter-spacing: -.055em;
+      text-wrap: balance;
+    }
+
+    .claim strong {
+      padding-inline: .07em;
+      color: var(--accent, var(--result));
+      background: linear-gradient(transparent 68%, var(--accent-soft, var(--result-soft)) 0);
+      box-decoration-break: clone;
+      -webkit-box-decoration-break: clone;
+    }
+
+    .visual {
+      min-height: 0;
+      display: grid;
+      align-content: center;
+      position: relative;
+      border-top: .18cqw solid rgba(19,35,60,.12);
+    }
+
+    .slide-foot { padding-top: 1.5cqw; }
+    .model-rail { position: relative; display: grid; grid-template-columns: repeat(5, 1fr); isolation: isolate; }
+    .model-rail::before { content: ""; position: absolute; left: 8%; right: 8%; top: 1.35cqw; height: .18cqw; background: var(--line); z-index: 0; }
+    .model-step { display: grid; justify-items: center; gap: .55cqw; color: var(--muted); font-size: 1.15cqw; font-weight: 700; position: relative; z-index: 1; }
+    .model-step::before { content: ""; width: 2.7cqw; height: 2.7cqw; border: .38cqw solid var(--paper); border-radius: 50%; background: var(--white); box-shadow: 0 0 0 .16cqw var(--line); }
+    .model-step.is-active { color: var(--ink); }
+    .model-step.is-active::before { background: var(--human); box-shadow: 0 0 0 .16cqw var(--ink), 0 0 0 .65cqw rgba(241,173,63,.16); }
+
+    .enter > * { opacity: 0; transform: translateY(1.7cqw); }
+    .is-active .enter > * { animation: reveal .48s cubic-bezier(.2,.75,.25,1) both; }
+    .is-active .enter > *:nth-child(1) { animation-delay: .12s; }
+    .is-active .enter > *:nth-child(2) { animation-delay: .23s; }
+    .is-active .enter > *:nth-child(3) { animation-delay: .34s; }
+    .is-active .enter > *:nth-child(4) { animation-delay: .45s; }
+    .is-active .enter > *:nth-child(5) { animation-delay: .56s; }
+    .is-active .enter > *:nth-child(6) { animation-delay: .67s; }
+
+    .node {
+      min-height: 12cqw;
+      display: grid;
+      place-items: center;
+      padding: 2cqw;
+      text-align: center;
+      color: var(--ink);
+      background: rgba(255,255,255,.83);
+      border: .16cqw solid var(--line);
+      font-size: 2.25cqw;
+      font-weight: 780;
+      line-height: 1.25;
+      position: relative;
+      z-index: 2;
+    }
+
+    .node.ai { color: var(--ai); border-color: var(--ai); background: var(--ai-soft); }
+    .node.human { color: #8d5703; border-color: var(--human); background: var(--human-soft); }
+    .node.result { color: #fff; border-color: var(--result); background: var(--result); }
+    .node.dim { color: var(--muted); }
+    .arrow { color: var(--ai); font-size: 4cqw; font-weight: 840; text-align: center; }
+
+    /* 01 核心变化 */
+    .shift-map {
+      display: grid;
+      grid-template-columns: .72fr auto 1.35fr;
+      align-items: center;
+      gap: 2.5cqw;
+    }
+
+    .result-chain { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 1.5cqw; }
+    .adopted {
+      grid-column: 1 / -1;
+      justify-self: end;
+      width: 63%;
+      margin-top: 1.8cqw;
+      padding: 1.4cqw;
+      text-align: center;
+      color: var(--result);
+      background: var(--result-soft);
+      font-size: 1.9cqw;
+      font-weight: 760;
+    }
+
+    /* 02 人机分工 */
+    .division-map { display: grid; grid-template-columns: 1fr 1fr; gap: 2.4cqw; }
+    .role-board { padding: 2.6cqw; background: rgba(255,255,255,.76); border-top: .65cqw solid var(--ai); }
+    .role-board.human { border-color: var(--human); }
+    .role-board h3 { margin: 0 0 2.2cqw; color: var(--ai); font-size: 3.2cqw; }
+    .role-board.human h3 { color: #8d5703; }
+    .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1cqw; }
+    .role-grid span { min-height: 7cqw; display: grid; place-items: center; padding: 1cqw; background: var(--white); font-size: 1.65cqw; font-weight: 710; text-align: center; }
+
+    /* 03 两种交付 */
+    .delivery-compare { display: grid; grid-template-columns: 1fr 1.15fr; gap: 2.4cqw; align-items: stretch; }
+    .delivery-side { min-height: 31cqw; display: grid; align-content: center; justify-items: center; gap: 2cqw; padding: 2.8cqw; background: rgba(255,255,255,.8); border: .16cqw solid var(--line); }
+    .delivery-side.result-side { border-color: var(--result); }
+    .sheet-shape { width: 16cqw; height: 20cqw; border: .3cqw solid var(--muted); background: repeating-linear-gradient(to bottom, transparent 0 3.3cqw, var(--line) 3.3cqw 3.5cqw); }
+    .delivery-side b { font-size: 2.6cqw; }
+    .mini-loop { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1cqw; }
+    .mini-loop span { min-height: 7cqw; display: grid; place-items: center; color: var(--result); background: var(--result-soft); font-size: 1.55cqw; font-weight: 760; text-align: center; }
+    .result-block { width: 100%; padding: 2.1cqw; color: #fff; background: var(--result); text-align: center; font-size: 2.5cqw; font-weight: 820; }
+
+    /* 04 闭环 */
+    .process-map { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.6cqw; counter-reset: process; }
+    .process-map .node { counter-increment: process; grid-template-columns: auto 1fr; gap: 1.3cqw; place-items: center start; text-align: left; }
+    .process-map .node::before { content: counter(process, decimal-leading-zero); color: var(--ai); font: 800 1.5cqw/1 ui-monospace, monospace; }
+    .process-map .node:nth-child(4), .process-map .node:nth-child(5) { border-top: .45cqw solid var(--human); }
+    .process-map .node:last-child::before { color: #bce7db; }
+
+    /* 05 标准化产出 */
+    .commodity-map { display: grid; grid-template-columns: 1.35fr .7fr; gap: 3cqw; align-items: center; }
+    .commodity-cloud { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1cqw; }
+    .commodity-cloud span { min-height: 7.5cqw; display: grid; place-items: center; padding: 1cqw; background: rgba(255,255,255,.82); border-bottom: .22cqw solid var(--ai); font-size: 1.55cqw; font-weight: 720; text-align: center; }
+    .cost-drop { min-height: 29cqw; display: grid; grid-template-rows: auto 1fr auto; padding: 2.5cqw; color: #fff; background: var(--ink); }
+    .cost-drop span { font-size: 1.7cqw; }
+    .cost-drop b { align-self: center; font-size: 8cqw; line-height: 1; }
+    .cost-drop strong { color: #b7cef8; font-size: 2.2cqw; }
+
+    /* 06 时间线 */
+    .era-map { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.8cqw; position: relative; isolation: isolate; }
+    .era-map::before { content: ""; position: absolute; left: 8%; right: 8%; top: 6.4cqw; height: .2cqw; background: var(--line); z-index: 0; }
+    .era-node { min-height: 29cqw; display: grid; align-content: start; gap: 3cqw; padding: 2.4cqw; background: rgba(255,255,255,.84); border-top: .55cqw solid var(--line); position: relative; z-index: 1; }
+    .era-node:nth-child(2) { border-color: var(--ai); }
+    .era-node:nth-child(3) { border-color: var(--human); }
+    .era-node time { color: var(--muted); font: 760 1.55cqw/1 ui-monospace, monospace; }
+    .era-node b { font-size: 2.8cqw; line-height: 1.25; }
+    .era-node span { color: var(--muted); font-size: 1.65cqw; line-height: 1.4; }
+
+    /* 07 具体情境做选择 */
+    .choice-map { display: grid; grid-template-columns: 1fr .55fr; gap: 3cqw; align-items: center; }
+    .option-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.3cqw; }
+    .option { min-height: 10cqw; display: grid; place-items: center; color: var(--ai); background: var(--ai-soft); border: .16cqw solid #9cb7ec; font-size: 3cqw; font-weight: 820; }
+    .option.chosen { color: #fff; background: var(--result); border-color: var(--result); box-shadow: 0 0 0 .7cqw var(--result-soft); }
+    .context-filter { display: grid; gap: 1.2cqw; }
+    .context-filter span { padding: 1.5cqw; color: #8d5703; background: var(--human-soft); font-size: 1.7cqw; font-weight: 740; text-align: center; }
+    .context-filter b { padding: 2cqw; color: #fff; background: var(--human); text-align: center; font-size: 2.4cqw; }
+
+    /* 08 判断力三角 */
+    .judgement-map { height: 34cqw; position: relative; isolation: isolate; }
+    .judgement-map::before, .judgement-map::after, .judgement-line {
+      content: "";
+      position: absolute;
+      height: .22cqw;
+      background: var(--line);
+      transform-origin: left center;
+      z-index: 0;
+    }
+    .judgement-map::before { width: 32cqw; left: 25%; top: 23%; transform: rotate(28deg); }
+    .judgement-map::after { width: 32cqw; left: 51%; top: 76%; transform: rotate(-28deg); }
+    .judgement-line { width: 28cqw; left: 25%; top: 76%; transform: rotate(-90deg); }
+    .judgement-point { width: 15cqw; height: 15cqw; display: grid; place-items: center; padding: 1.5cqw; border-radius: 50%; background: var(--white); border: .2cqw solid var(--human); text-align: center; font-size: 1.9cqw; font-weight: 760; position: absolute; z-index: 2; }
+    .judgement-point:nth-child(2) { left: 12%; top: 4%; }
+    .judgement-point:nth-child(3) { right: 12%; top: 4%; }
+    .judgement-point:nth-child(4) { left: 50%; bottom: 0; transform: translateX(-50%); }
+    .judgement-center { width: 13cqw; height: 13cqw; display: grid; place-items: center; border-radius: 50%; color: #fff; background: var(--ink); font-size: 2.4cqw; font-weight: 820; position: absolute; left: 50%; top: 45%; transform: translate(-50%,-50%); z-index: 3; }
+
+    /* 09 我会到结果 */
+    .value-shift { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 1.5cqw; align-items: center; }
+    .value-shift .node { min-height: 18cqw; }
+
+    /* 10 能力翻译 */
+    .mapping-map { display: grid; grid-template-columns: .8fr auto 1.25fr; gap: 1.5cqw 2cqw; align-items: center; }
+    .mapping-map .skill, .mapping-map .outcome { min-height: 7.6cqw; display: grid; place-items: center; padding: 1cqw; font-size: 1.7cqw; font-weight: 740; text-align: center; }
+    .mapping-map .skill { color: var(--muted); background: rgba(255,255,255,.82); }
+    .mapping-map .outcome { color: var(--result); background: var(--result-soft); }
+    .mapping-map .map-arrow { color: var(--result); font-size: 2.7cqw; font-weight: 820; }
+
+    /* 11 售卖结果 */
+    .sell-map { display: grid; grid-template-columns: .65fr 1.35fr; gap: 3cqw; align-items: end; }
+    .hour-box { min-height: 18cqw; display: grid; place-items: center; color: var(--muted); background: rgba(255,255,255,.82); border: .2cqw solid var(--line); font-size: 3cqw; font-weight: 800; }
+    .outcome-stack { display: grid; gap: 1.1cqw; }
+    .outcome-stack span { min-height: 7cqw; display: grid; place-items: center; background: var(--result-soft); color: var(--result); font-size: 1.8cqw; font-weight: 760; }
+    .outcome-stack span:last-child { min-height: 9cqw; color: #fff; background: var(--result); font-size: 2.4cqw; }
+
+    /* 12 采用网络 */
+    .adoption-map { display: grid; grid-template-columns: .7fr 1.3fr; gap: 3cqw; align-items: center; }
+    .solution-stack { display: grid; gap: .8cqw; }
+    .solution-stack span { padding: 1.4cqw; color: var(--ai); background: var(--ai-soft); text-align: center; font-size: 1.7cqw; font-weight: 750; }
+    .solution-stack span:nth-child(n+4) { opacity: .48; }
+    .people-network { height: 32cqw; position: relative; isolation: isolate; }
+    .people-network::before, .people-network::after { content: ""; position: absolute; left: 13%; right: 13%; top: 50%; height: .2cqw; background: var(--line); transform: rotate(25deg); z-index: 0; }
+    .people-network::after { transform: rotate(-25deg); }
+    .person { width: 8.5cqw; height: 8.5cqw; display: grid; place-items: center; border-radius: 50%; color: #fff; background: var(--ink); font-size: 1.45cqw; font-weight: 760; position: absolute; z-index: 2; }
+    .person:nth-child(1) { left: 5%; top: 3%; }
+    .person:nth-child(2) { right: 5%; top: 3%; }
+    .person:nth-child(3) { left: 8%; bottom: 2%; }
+    .person:nth-child(4) { right: 8%; bottom: 2%; }
+    .person.center { width: 13cqw; height: 13cqw; left: 50%; top: 50%; transform: translate(-50%,-50%); color: var(--ink); background: var(--human); font-size: 2.1cqw; }
+
+    /* 13 冰山 */
+    .iceberg-map { display: grid; grid-template-rows: auto .22cqw auto; width: 78%; margin-inline: auto; }
+    .surface { padding: 2.4cqw; color: var(--ai); background: var(--ai-soft); clip-path: polygon(22% 0,78% 0,64% 100%,36% 100%); text-align: center; font-size: 2.5cqw; font-weight: 800; }
+    .water { background: var(--ai); }
+    .underwater { padding: 4.8cqw 3cqw 4cqw; color: #fff; background: var(--ink); clip-path: polygon(36% 0,64% 0,100% 100%,0 100%); text-align: center; font-size: 3cqw; font-weight: 820; }
+
+    /* 14 能力栈 */
+    .capability-map { width: 88%; margin-inline: auto; display: grid; gap: 1.2cqw; align-items: end; }
+    .capability-layer { min-height: 10.5cqw; display: grid; grid-template-columns: 6cqw 1fr; align-items: center; gap: 1.6cqw; padding: 2cqw 2.8cqw; color: #fff; background: var(--ink); }
+    .capability-layer:nth-child(1) { width: 72%; margin-inline: auto; color: var(--ink); background: var(--human); }
+    .capability-layer:nth-child(2) { width: 86%; margin-inline: auto; background: var(--ai); }
+    .capability-layer b { font: 800 1.7cqw/1 ui-monospace, monospace; }
+    .capability-layer span { font-size: 2.05cqw; font-weight: 770; }
+
+    /* 15 组合优势 */
+    .combine-map { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 1.4cqw; align-items: center; }
+    .combine-map .node { min-height: 16cqw; }
+    .combined-result { grid-column: 1 / -1; justify-self: center; width: 62%; margin-top: 2cqw; padding: 2cqw; color: #fff; background: var(--result); text-align: center; font-size: 2.5cqw; font-weight: 820; }
+
+    /* 16 两条工作路径 */
+    .road-map { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5cqw; }
+    .road { min-height: 32cqw; padding: 2.5cqw; background: rgba(255,255,255,.78); border-top: .55cqw solid var(--line); }
+    .road.adaptive { border-color: var(--result); }
+    .road h3 { margin: 0 0 2.2cqw; font-size: 2.5cqw; }
+    .road-path { display: grid; gap: 1.1cqw; }
+    .road-path span { padding: 1.2cqw 1.5cqw; background: var(--white); color: var(--muted); font-size: 1.55cqw; font-weight: 710; }
+    .road-path span:last-child { color: var(--risk); background: var(--risk-soft); }
+    .adaptive .road-path span { color: var(--result); background: var(--result-soft); }
+    .adaptive .road-path span:last-child { color: #fff; background: var(--result); }
+
+    /* 17 分界线 */
+    .divide-map { display: grid; grid-template-columns: 1fr .18cqw 1fr; gap: 3cqw; align-items: center; }
+    .divide-line { height: 29cqw; background: var(--line); }
+    .divide-side { min-height: 28cqw; display: grid; align-content: center; gap: 2cqw; padding: 2.5cqw; text-align: center; }
+    .divide-side b { font-size: 3.1cqw; }
+    .divide-side span { color: var(--muted); font-size: 1.7cqw; }
+    .divide-side.owner { color: var(--result); background: var(--result-soft); }
+    .divide-side.owner span { color: var(--result); }
+
+    /* 18 开始路径 */
+    .start-map { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4cqw; counter-reset: start; }
+    .start-map span { counter-increment: start; min-height: 12cqw; display: grid; grid-template-columns: auto 1fr; gap: 1cqw; place-items: center start; padding: 1.7cqw; background: rgba(255,255,255,.82); border-bottom: .4cqw solid var(--ai); font-size: 1.65cqw; font-weight: 730; }
+    .start-map span::before { content: counter(start, decimal-leading-zero); color: var(--ai); font: 800 1.4cqw/1 ui-monospace, monospace; }
+    .start-map span:nth-child(n+4) { border-color: var(--result); }
+
+    /* 19 三个复盘问题 */
+    .review-map { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.7cqw; }
+    .review-question { min-height: 29cqw; display: grid; align-content: space-between; padding: 2.4cqw; background: rgba(255,255,255,.84); border-top: .55cqw solid var(--ai); }
+    .review-question:nth-child(2) { border-color: var(--human); }
+    .review-question:nth-child(3) { border-color: var(--result); }
+    .review-question b { color: var(--muted); font: 800 2.1cqw/1 ui-monospace, monospace; }
+    .review-question span { font-size: 2.25cqw; font-weight: 790; line-height: 1.35; }
+
+    /* 20 结果责任 */
+    .final-map { display: grid; grid-template-columns: 1fr 1fr; gap: 1.3cqw; }
+    .final-map span { min-height: 9cqw; display: grid; place-items: center; padding: 1.4cqw; color: var(--muted); background: rgba(255,255,255,.84); font-size: 1.9cqw; font-weight: 750; text-align: center; }
+    .final-target { grid-column: 1 / -1; justify-self: center; width: 72%; min-height: 12cqw !important; color: #fff !important; background: var(--result) !important; font-size: 3cqw !important; }
+
+    /* 统一具象图形语言：大图形讲关系，文字只做必要定位 */
+    .scene-illustration {
+      width: 100%;
+      height: 100%;
+      display: block;
+      overflow: visible;
+      transform: translateY(-12cqw);
+    }
+
+    .scene-illustration .tone-ink { color: var(--ink); }
+    .scene-illustration .tone-muted { color: var(--muted); }
+    .scene-illustration .tone-ai { color: var(--ai); }
+    .scene-illustration .tone-human { color: var(--human); }
+    .scene-illustration .tone-result { color: var(--result); }
+    .scene-illustration .tone-risk { color: var(--risk); }
+    .scene-illustration .soft-ai { fill: var(--ai-soft); }
+    .scene-illustration .soft-human { fill: var(--human-soft); }
+    .scene-illustration .soft-result { fill: var(--result-soft); }
+    .scene-illustration .soft-risk { fill: var(--risk-soft); }
+    .scene-illustration .paper-fill { fill: var(--white); }
+    .scene-illustration .ink-fill { fill: var(--ink); }
+    .scene-illustration .ai-fill { fill: var(--ai); }
+    .scene-illustration .human-fill { fill: var(--human); }
+    .scene-illustration .result-fill { fill: var(--result); }
+    .scene-illustration .risk-fill { fill: var(--risk); }
+    .scene-illustration .link {
+      fill: none;
+      stroke: var(--line);
+      stroke-width: 4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .scene-illustration .link.ai { stroke: var(--ai); }
+    .scene-illustration .link.human { stroke: var(--human); }
+    .scene-illustration .link.result { stroke: var(--result); }
+    .scene-illustration .link.risk { stroke: var(--risk); }
+    .scene-illustration .link.dashed { stroke-dasharray: 10 10; }
+    .scene-illustration .backplate { fill: var(--paper); stroke: var(--line); stroke-width: 3; }
+    .scene-illustration .label {
+      fill: var(--ink);
+      font-size: 24px;
+      font-weight: 780;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+    .scene-illustration .label.small { font-size: 20px; }
+    .scene-illustration .label.ai { fill: var(--ai); }
+    .scene-illustration .label.human { fill: #8b5605; }
+    .scene-illustration .label.result { fill: var(--result); }
+    .scene-illustration .label.white { fill: #fff; }
+    .scene-illustration .illustration-part { transform-box: fill-box; transform-origin: center; }
+    .is-active .scene-illustration .draw { stroke-dasharray: 900; stroke-dashoffset: 900; animation: drawLine .85s ease-out forwards; }
+    .is-active .scene-illustration .pop { animation: pictogramPop .48s cubic-bezier(.2,.82,.25,1) both; }
+    .is-active .scene-illustration .pop.d2 { animation-delay: .16s; }
+    .is-active .scene-illustration .pop.d3 { animation-delay: .32s; }
+    .is-active .scene-illustration .pop.d4 { animation-delay: .48s; }
+    .is-active .scene-illustration .pop.d5 { animation-delay: .64s; }
+
+    /* 统一图像语言：Lucide 线性图标 + 同尺寸透明节点 + 边缘连接 */
+    .scene-illustration .system-node {
+      fill: var(--paper);
+      stroke: var(--line);
+      stroke-width: 2.5;
+    }
+    .scene-illustration .system-node.is-result { stroke: #93bbae; }
+    .scene-illustration .system-icon {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .scene-illustration .system-link {
+      fill: none;
+      stroke: #aeb8c4;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .scene-illustration .system-link.dotted {
+      stroke: #aeb8c4;
+      stroke-width: 2;
+      stroke-dasharray: 2 9;
+    }
+    .scene-illustration .system-divider {
+      stroke: var(--line);
+      stroke-width: 2;
+      stroke-dasharray: 3 9;
+    }
+    .scene-illustration .system-label {
+      fill: var(--ink);
+      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 22px;
+      font-weight: 760;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+    .scene-illustration .system-label.small { font-size: 18px; }
+    .scene-illustration .system-label.muted { fill: var(--muted); }
+    .scene-illustration .system-label.result { fill: var(--result); }
+    .scene-illustration .system-label.human { fill: #9a6207; }
+    .scene-illustration .system-label.ai { fill: var(--ai); }
+    .scene-illustration .system-number {
+      fill: var(--paper);
+      stroke: var(--line);
+      stroke-width: 2;
+    }
+    .scene-illustration .system-panel {
+      fill: rgba(255,255,255,.22);
+      stroke: var(--line);
+      stroke-width: 2;
+    }
+
+    .svg-sprite { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
+
+    .progress {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: .55cqw;
+      background: rgba(19,35,60,.1);
+    }
+    .progress-fill { width: 5%; height: 100%; background: var(--result); transition: width .35s ease; }
+
+    .console {
+      align-self: stretch;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      gap: 16px;
+      padding: 21px;
+      color: #edf3fc;
+      background: rgba(255,255,255,.055);
+      border: 1px solid rgba(255,255,255,.1);
+    }
+    .console-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .console-head strong { font-size: 16px; }
+    .console-head span { color: #9cabc0; font: 700 12px/1 ui-monospace, monospace; }
+    .controls { display: grid; grid-template-columns: 44px 1fr 44px; gap: 8px; }
+    .controls button { min-height: 42px; color: #edf3fc; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); cursor: pointer; }
+    .controls button:hover { background: rgba(255,255,255,.14); }
+    .notes { min-height: 0; overflow: auto; padding: 17px; color: #d6e0ec; background: rgba(4,12,23,.45); border-left: 3px solid var(--human); }
+    .notes h2 { margin: 0 0 12px; color: #fff; font-size: 13px; letter-spacing: .08em; }
+    .notes p { margin: 0; white-space: pre-wrap; font-size: 14px; line-height: 1.8; }
+    .hint { margin: 0; color: #95a5ba; font-size: 12px; line-height: 1.6; }
+
+    body.clean { overflow: hidden; }
+    body.clean .app { width: 100vw; height: 100vh; min-height: 0; display: grid; place-items: center; padding: 0; }
+    body.clean .console { display: none; }
+    body.clean .preview { width: 100%; height: 100%; }
+    body.clean .stage-wrap { width: min(100vw, 75vh); height: auto; max-height: 100vh; aspect-ratio: 3 / 4; }
+
+    @keyframes slideIn { from { opacity: 0; transform: translateY(1.4cqw); } to { opacity: 1; transform: none; } }
+    @keyframes reveal { from { opacity: 0; transform: translateY(1.7cqw); } to { opacity: 1; transform: none; } }
+    @keyframes drawLine { to { stroke-dashoffset: 0; } }
+    @keyframes pictogramPop { from { opacity: 0; transform: translateY(14px) scale(.92); } to { opacity: 1; transform: none; } }
+
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; padding: 14px; }
+      .stage-wrap { width: min(94vw, calc(82vh * .75)); }
+      .console { width: min(94vw, 680px); justify-self: center; min-height: 460px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <svg class="svg-sprite" aria-hidden="true">
+    <defs>
+      <symbol id="pic-person" viewBox="0 0 100 100">
+        <circle cx="50" cy="28" r="16" fill="currentColor"/>
+        <path d="M21 91c3-26 14-39 29-39s26 13 29 39Z" fill="currentColor"/>
+      </symbol>
+      <symbol id="pic-group" viewBox="0 0 100 100">
+        <circle cx="50" cy="24" r="13" fill="currentColor"/>
+        <circle cx="22" cy="37" r="10" fill="currentColor" opacity=".72"/>
+        <circle cx="78" cy="37" r="10" fill="currentColor" opacity=".72"/>
+        <path d="M29 87c2-23 10-35 21-35s19 12 21 35Z" fill="currentColor"/>
+        <path d="M4 87c2-19 8-29 18-29 6 0 11 4 14 11M96 87c-2-19-8-29-18-29-6 0-11 4-14 11" fill="currentColor" opacity=".72"/>
+      </symbol>
+      <symbol id="pic-ai" viewBox="0 0 100 100">
+        <rect x="12" y="16" width="76" height="68" rx="12" fill="currentColor" opacity=".14"/>
+        <rect x="12" y="16" width="76" height="68" rx="12" fill="none" stroke="currentColor" stroke-width="6"/>
+        <circle cx="50" cy="36" r="8" fill="currentColor"/>
+        <circle cx="32" cy="64" r="7" fill="currentColor"/>
+        <circle cx="68" cy="64" r="7" fill="currentColor"/>
+        <path d="M46 43 35 57m19-14 11 14M39 64h22" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="pic-file" viewBox="0 0 100 100">
+        <path d="M24 10h36l17 18v62H24Z" fill="currentColor" opacity=".12"/>
+        <path d="M24 10h36l17 18v62H24ZM60 10v19h17M36 46h29M36 59h29M36 72h20" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="pic-search" viewBox="0 0 100 100">
+        <circle cx="42" cy="42" r="25" fill="currentColor" opacity=".12"/>
+        <circle cx="42" cy="42" r="25" fill="none" stroke="currentColor" stroke-width="7"/>
+        <path d="m61 61 25 25" fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="pic-target" viewBox="0 0 100 100">
+        <circle cx="48" cy="52" r="35" fill="currentColor" opacity=".12"/>
+        <circle cx="48" cy="52" r="35" fill="none" stroke="currentColor" stroke-width="6"/>
+        <circle cx="48" cy="52" r="20" fill="none" stroke="currentColor" stroke-width="6"/>
+        <circle cx="48" cy="52" r="7" fill="currentColor"/>
+        <path d="m65 34 24-24m-9 0h9v9" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="pic-shield" viewBox="0 0 100 100">
+        <path d="M50 8 84 22v24c0 23-12 38-34 48C28 84 16 69 16 46V22Z" fill="currentColor" opacity=".14"/>
+        <path d="M50 8 84 22v24c0 23-12 38-34 48C28 84 16 69 16 46V22Zm-17 41 12 12 23-27" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="pic-book" viewBox="0 0 100 100">
+        <path d="M10 18c16-5 30-1 40 9v61C40 78 26 74 10 79Zm80 0c-16-5-30-1-40 9v61c10-10 24-14 40-9Z" fill="currentColor" opacity=".13"/>
+        <path d="M10 18c16-5 30-1 40 9v61C40 78 26 74 10 79V18Zm80 0c-16-5-30-1-40 9v61c10-10 24-14 40-9V18ZM50 27v61" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="pic-fork" viewBox="0 0 100 100">
+        <path d="M50 90V55M50 55 22 27M50 55l28-28" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round"/>
+        <path d="m13 28 9-9 9 9M69 28l9-9 9 9" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="pic-play" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="40" fill="currentColor" opacity=".14"/>
+        <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" stroke-width="6"/>
+        <path d="m42 31 29 19-29 19Z" fill="currentColor"/>
+      </symbol>
+      <symbol id="pic-chart" viewBox="0 0 100 100">
+        <path d="M15 12v73h74" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
+        <path d="m25 70 18-23 15 12 25-34" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="m72 25 11-1-1 11" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="pic-flask" viewBox="0 0 100 100">
+        <path d="M38 10h24M44 10v31L20 80c-4 7 0 12 8 12h44c8 0 12-5 8-12L56 41V10" fill="currentColor" opacity=".12"/>
+        <path d="M38 10h24M44 10v31L20 80c-4 7 0 12 8 12h44c8 0 12-5 8-12L56 41V10M29 70h42" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="43" cy="74" r="5" fill="currentColor"/><circle cx="59" cy="80" r="4" fill="currentColor"/>
+      </symbol>
+      <symbol id="pic-clock" viewBox="0 0 100 100">
+        <circle cx="50" cy="52" r="39" fill="currentColor" opacity=".12"/>
+        <circle cx="50" cy="52" r="39" fill="none" stroke="currentColor" stroke-width="6"/>
+        <path d="M50 28v26l18 10M35 8h30" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="pic-chat" viewBox="0 0 100 100">
+        <path d="M12 16h76v55H42L18 89V71h-6Z" fill="currentColor" opacity=".14"/>
+        <path d="M12 16h76v55H42L18 89V71h-6ZM29 37h42M29 51h27" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="pic-handshake" viewBox="0 0 100 100">
+        <path d="m8 39 20-18 19 13 9-6 36 28-17 22-19-15-12 11-20-18Z" fill="currentColor" opacity=".14"/>
+        <path d="m8 39 20-18 19 13 9-6 36 28-17 22-19-15-12 11-20-18M28 21l19 13-13 11c-5 4 1 12 7 8l15-10 25 20M25 56l13 11m5-19 32 26" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="pic-briefcase" viewBox="0 0 100 100">
+        <path d="M10 30h80v58H10Z" fill="currentColor" opacity=".13"/>
+        <path d="M10 30h80v58H10Zm28 0V18h24v12M10 52h80M42 48h16v10H42Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="pic-calendar" viewBox="0 0 100 100">
+        <rect x="12" y="18" width="76" height="70" rx="8" fill="currentColor" opacity=".12"/>
+        <rect x="12" y="18" width="76" height="70" rx="8" fill="none" stroke="currentColor" stroke-width="6"/>
+        <path d="M12 38h76M32 10v18M68 10v18" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
+        <path d="m35 62 10 10 22-25" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="pic-sliders" viewBox="0 0 100 100">
+        <path d="M14 25h72M14 50h72M14 75h72" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
+        <circle cx="35" cy="25" r="9" fill="var(--paper)" stroke="currentColor" stroke-width="6"/>
+        <circle cx="66" cy="50" r="9" fill="var(--paper)" stroke="currentColor" stroke-width="6"/>
+        <circle cx="46" cy="75" r="9" fill="var(--paper)" stroke="currentColor" stroke-width="6"/>
+      </symbol>
+      <symbol id="pic-loop" viewBox="0 0 100 100">
+        <path d="M78 31A35 35 0 0 0 20 50m2 19a35 35 0 0 0 58-19" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round"/>
+        <path d="m66 20 15 10-15 10M34 80 19 70l15-10" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="pic-flag" viewBox="0 0 100 100">
+        <path d="M22 92V10m2 5h54L64 34l14 19H24" fill="currentColor" opacity=".14"/>
+        <path d="M22 92V10m2 5h54L64 34l14 19H24" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="pic-coins" viewBox="0 0 100 100">
+        <ellipse cx="50" cy="27" rx="31" ry="13" fill="currentColor" opacity=".15"/>
+        <path d="M19 27v42c0 7 14 13 31 13s31-6 31-13V27M19 48c0 7 14 13 31 13s31-6 31-13M19 27c0 7 14 13 31 13s31-6 31-13-14-13-31-13-31 6-31 13Z" fill="none" stroke="currentColor" stroke-width="6"/>
+      </symbol>
+    </defs>
+  </svg>
+  <main class="app">
+    <section class="preview" aria-label="图形速览画面">
+      <div class="stage-wrap">
+        <div class="stage" id="stage">
+          <div class="progress" aria-hidden="true"><div class="progress-fill" id="progressFill"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="console" aria-label="速览控制台">
+      <div class="console-head"><strong id="consoleTitle">AI 增强型的人</strong><span id="counter">01 / 20</span></div>
+      <div class="controls">
+        <button type="button" id="prevButton" aria-label="上一页">←</button>
+        <button type="button" id="playButton">自动播放</button>
+        <button type="button" id="nextButton" aria-label="下一页">→</button>
+      </div>
+      <div class="notes"><h2>补充说明</h2><p id="notes"></p></div>
+      <p class="hint">← → 翻页　空格 自动播放/暂停　R 重播本页<br>纯展示：网址后加 <code>?clean=1</code></p>
+    </aside>
+  </main>
+
+  <script>
+    const pic = (name, x, y, size, tone = "tone-ink", delay = "") =>
+      `<use href="#pic-${name}" x="${x}" y="${y}" width="${size}" height="${size}" class="illustration-part ${tone} pop ${delay}"></use>`;
+
+    const svgLabel = (text, x, y, tone = "", small = false) =>
+      `<text x="${x}" y="${y}" class="label ${tone} ${small ? "small" : ""}">${text}</text>`;
+
+    const sceneSvg = content =>
+      `<svg class="scene-illustration" viewBox="0 0 800 420" role="img" aria-label="本页观点示意图">${content}</svg>`;
+
+    // Lucide 官方 24×24 线性图标。只静态嵌入本项目实际使用的图标，页面离线也能展示。
+    const lucidePaths = {
+      help: `<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>`,
+      user: `<circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>`,
+      bot: `<path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2M20 14h2M15 13v2M9 13v2"/>`,
+      target: `<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>`,
+      users: `<path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/>`,
+      file: `<path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5M10 9H8M16 13H8M16 17H8"/>`,
+      search: `<path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/>`,
+      flask: `<path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2"/><path d="M6.453 15h11.094M8.5 2h7"/>`,
+      book: `<path d="M12 5v16"/><path d="M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2 5 5 0 0 1 4-2z"/>`,
+      check: `<path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/>`,
+      idea: `<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5M9 18h6M10 22h4"/>`,
+      route: `<circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/>`,
+      scale: `<path d="M12 3v18M19 8l3 8a5 5 0 0 1-6 0V7M3 7h1a17 17 0 0 0 8-2 17 17 0 0 0 8 2h1M5 8l3 8a5 5 0 0 1-6 0V7M7 21h10"/>`,
+      message: `<path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/>`,
+      handshake: `<path d="m11 17 2 2a1 1 0 1 0 3-3M14 14l2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4M21 3l1 11h-2M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3M3 4h8"/>`,
+      briefcase: `<path d="M12 12h.01M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2M22 13a18.15 18.15 0 0 1-20 0"/><rect width="20" height="14" x="2" y="6" rx="2"/>`,
+      calendar: `<path d="M8 2v3M16 2v3"/><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01"/>`,
+      sliders: `<path d="M10 5H3M12 19H3M14 3v4M16 17v4M21 12h-9M21 19h-5M21 5h-7M8 10v4M8 12H3"/>`,
+      refresh: `<path d="M3 12a9 9 0 0 1 15.74-6.26L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.74 6.26L3 16M8 16H3v5"/>`,
+      flag: `<path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528"/>`,
+      chart: `<path d="M12 16v5M16 14.639V21M20 10.656V21M22 3l-8.646 8.646a.5.5 0 0 1-.708 0L9.354 8.354a.5.5 0 0 0-.707 0L2 15M4 18.463V21M8 14.656V21"/>`,
+      shield: `<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>`,
+      clock: `<circle cx="12" cy="12" r="10"/><path d="M12 6v6h4"/>`
+    };
+
+    const systemIcon = (name, cx, cy, size = 48) =>
+      `<svg x="${cx - size / 2}" y="${cy - size / 2}" width="${size}" height="${size}" viewBox="0 0 24 24" class="system-icon">${lucidePaths[name]}</svg>`;
+
+    const systemNode = ({ icon, label, tone = "tone-ink", result = false, delay = "", labelGap = 34, labelPosition = "bottom" }, cx, cy, size = 96) => `
+      <g class="illustration-part pop ${delay} ${tone}">
+        <rect class="system-node ${result ? "is-result" : ""}" x="${cx - size / 2}" y="${cy - size / 2}" width="${size}" height="${size}" rx="18"/>
+        ${systemIcon(icon, cx, cy, Math.round(size * .48))}
+      </g>
+      <text x="${cx}" y="${labelPosition === "top" ? cy - size / 2 - labelGap : cy + size / 2 + labelGap}" class="system-label ${result ? "result" : tone === "tone-ai" ? "ai" : tone === "tone-human" ? "human" : ""}">${label}</text>`;
+
+    let systemSvgIndex = 0;
+    const systemSvg = content => {
+      const arrowId = `system-arrow-${systemSvgIndex++}`;
+      return `<svg class="scene-illustration" viewBox="0 0 800 420" role="img" aria-label="本页观点示意图">
+        <defs><marker id="${arrowId}" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#8190a1"/></marker></defs>
+        ${content.replaceAll("url(#system-arrow)", `url(#${arrowId})`)}
+      </svg>`;
+    };
+
+    const systemLink = (x1, y1, x2, y2, directed = true, dotted = false) =>
+      `<path class="system-link ${dotted ? "dotted" : ""} draw" d="M${x1} ${y1}H${x2}" ${directed ? 'marker-end="url(#system-arrow)"' : ""}/>`;
+
+    const systemFlow = (items, centers, y = 190, size = 96) => systemSvg(`
+      ${items.slice(0, -1).map((_, i) => systemLink(centers[i] + size / 2 + 10, y, centers[i + 1] - size / 2 - 12, y)).join("")}
+      ${items.map((item, i) => systemNode({ ...item, delay: i ? `d${Math.min(i + 1, 5)}` : "" }, centers[i], y, size)).join("")}
+    `);
+
+    const slides = [
+      {
+        chapter: 0, chapterName: "核心判断",
+        claim: `不是谁知道得更多，<br>而是谁能把<strong>模糊问题</strong><br>变成<strong>可靠结果</strong>`,
+        visual: sceneSvg(`
+          <path class="link draw" d="M165 210H275M430 210H520M655 210H690"/>
+          <path class="ink-fill" d="m260 196 24 14-24 14Z"/><path class="ink-fill" d="m505 196 24 14-24 14Z"/><path class="ink-fill" d="m675 196 24 14-24 14Z"/>
+          <circle class="backplate" cx="115" cy="210" r="65"/><rect class="soft-ai" x="275" y="125" width="155" height="170" rx="32"/><circle class="backplate" cx="585" cy="210" r="72"/><circle class="backplate" cx="735" cy="210" r="62"/>
+          <text x="115" y="226" class="label pop" style="font-size:66px">?</text>
+          ${pic("person",292,155,88,"tone-human","d2")}${pic("ai",352,172,70,"tone-ai","d2")}
+          ${pic("target",530,155,110,"tone-result","d3")}${pic("group",690,165,90,"tone-ink","d4")}
+          ${svgLabel("问题",115,315,"",true)}${svgLabel("你 + AI",352,330,"ai",true)}${svgLabel("结果",585,315,"result",true)}${svgLabel("采用",735,315,"",true)}
+        `),
+        note: `未来真正拉开人与人差距的，不是“谁知道得更多”，而是谁能借助 AI，把一个模糊问题变成可靠结果，并让别人愿意采用这个结果。\n\n这比“学会几个提示词”深得多。`
+      },
+      {
+        chapter: 1, chapterName: "AI 增强型的人",
+        claim: `AI 提高速度，<br>人决定<strong>方向与责任</strong>`,
+        visual: sceneSvg(`
+          <line class="link" x1="400" y1="55" x2="400" y2="360"/>
+          <path class="link ai draw" d="M130 210H285"/><path class="link human draw" d="M515 210H670"/>
+          ${pic("file",80,160,100,"tone-muted")}${pic("ai",250,145,130,"tone-ai","d2")}
+          ${pic("person",430,145,130,"tone-human","d2")}${pic("target",620,150,120,"tone-result","d3")}
+          ${svgLabel("执行",235,335,"ai")}${svgLabel("决定",565,335,"human")}
+        `),
+        note: `“AI 增强型的人”不是把所有工作都交给 AI，而是重新分工。AI 承担高速度、可重复的部分；人确定目标、理解情境、判断真假、权衡取舍，并对结果负责。`
+      },
+      {
+        chapter: 1, chapterName: "AI 增强型的人",
+        claim: `“做完文档”<br>不等于<strong>“解决问题”</strong>`,
+        visual: sceneSvg(`
+          <line class="link" x1="390" y1="55" x2="390" y2="360"/>
+          ${pic("file",120,115,150,"tone-muted")}
+          <path class="link risk draw" d="m270 150 62 62m0-62-62 62"/>
+          <path class="link result draw" d="M470 210H585M665 210H715"/><path class="result-fill" d="M570 196l24 14-24 14ZM700 196l24 14-24 14Z"/>
+          ${pic("search",425,160,100,"tone-human")}${pic("flask",570,160,100,"tone-ai","d2")}${pic("target",680,160,100,"tone-result","d3")}
+          ${svgLabel("文档",195,315,"",true)}${svgLabel("诊断",475,315,"human",true)}${svgLabel("测试",620,315,"ai",true)}${svgLabel("结果",730,315,"result",true)}
+        `),
+        note: `同样是做市场方案，普通执行者交付一份整理好的文档；AI 增强型的人先诊断问题，再分析数据、比较方案、小规模测试，最后交付结果和下一步建议。`
+      },
+      {
+        chapter: 1, chapterName: "AI 增强型的人",
+        claim: `文档只是中间产物，<br><strong>闭环</strong>才是工作成果`,
+        visual: sceneSvg(`
+          <path class="link result draw" style="stroke-width:9" d="M400 55A155 155 0 1 1 255 265"/>
+          <path class="result-fill" d="m235 248 15 37 33-21Z"/>
+          <circle class="ink-fill pop" cx="400" cy="55" r="20"/><circle class="ai-fill pop d2" cx="535" cy="125" r="20"/><circle class="result-fill pop d3" cx="535" cy="295" r="20"/><circle class="human-fill pop d3" cx="400" cy="365" r="20"/><circle class="ai-fill pop d4" cx="265" cy="295" r="20"/><circle class="ink-fill pop d5" cx="265" cy="125" r="20"/>
+          ${svgLabel("问题",400,18,"",true)}${svgLabel("资源",590,105,"ai",true)}${svgLabel("验证",590,318,"result",true)}${svgLabel("决策",400,405,"human",true)}${svgLabel("执行",210,318,"ai",true)}${svgLabel("结果",210,105,"result",true)}
+          ${svgLabel("完整闭环",400,210,"result")}
+        `),
+        note: `真正的差别是一条完整闭环：发现问题、调动资源、验证、决策、执行，最后交付结果。文档只是过程中产生的中间物。`
+      },
+      {
+        chapter: 2, chapterName: "知识没有失效",
+        claim: `越来越便宜的是<br><strong>“基本合格”</strong>的答案`,
+        visual: sceneSvg(`
+          <path class="link ai draw" d="M180 210H315M485 210H620"/><path class="ink-fill" d="m300 196 24 14-24 14Z"/><path class="ink-fill" d="m605 196 24 14-24 14Z"/>
+          ${pic("file",80,155,110,"tone-muted")}
+          <rect class="soft-ai" x="315" y="120" width="170" height="180" rx="30"/><use href="#pic-ai" x="350" y="155" width="100" height="100" class="tone-ai pop d2"/>
+          ${pic("file",620,155,110,"tone-ai","d3")}<path class="link result draw" d="M710 95v75m-16-16 16 16 16-16"/>
+          ${svgLabel("标准答案",675,310,"ai",true)}${svgLabel("成本下降",710,62,"result",true)}
+        `),
+        note: `AI 会让很多过去依赖脑力速度的能力变得便宜。邮件、纪要、翻译、常规代码、基础方案，多数人通过 AI 都能达到基本合格。被压低的是标准化产出的门槛。`
+      },
+      {
+        chapter: 2, chapterName: "知识没有失效",
+        claim: `知识从“生产答案”<br>走向<strong>“判断答案”</strong>`,
+        visual: sceneSvg(`
+          <path class="link draw" d="M140 205H660"/><path class="ink-fill" d="m650 192 23 13-23 13Z"/>
+          <circle class="backplate" cx="160" cy="205" r="75"/><circle class="backplate" cx="400" cy="205" r="75"/><circle class="backplate" cx="640" cy="205" r="75"/>
+          ${pic("book",110,155,100,"tone-muted")}${pic("search",350,155,100,"tone-ai","d2")}${pic("target",590,155,100,"tone-human","d3")}
+          <use href="#pic-ai" x="383" y="188" width="52" height="52" class="tone-ai pop d3"/>
+          ${svgLabel("过去",160,325,"",true)}${svgLabel("现在",400,325,"ai",true)}${svgLabel("未来",640,325,"human",true)}
+        `),
+        note: `知识没有失效，它的作用正在变化。过去靠记忆生产答案，现在靠知识核验 AI，未来靠知识提出更好的问题、识别例外并进行关键决策。真正贬值的是复述标准答案。`
+      },
+      {
+        chapter: 3, chapterName: "判断力会变贵",
+        claim: `AI 能告诉你“可以怎么做”，<br>却不能替你决定<br><strong>“此刻应该怎么做”</strong>`,
+        visual: sceneSvg(`
+          <path class="link ai draw" d="M170 210 C260 210 255 95 340 95M170 210 C260 210 255 175 340 175M170 210 C260 210 255 255 340 255M170 210 C260 210 255 335 340 335"/>
+          <path class="link human draw" d="M395 255 C485 255 500 210 575 210M635 210H715"/>
+          ${pic("ai",80,160,100,"tone-ai")}
+          <circle class="soft-ai" cx="365" cy="95" r="31"/><circle class="soft-ai" cx="365" cy="175" r="31"/><circle class="soft-result" cx="365" cy="255" r="39"/><circle class="soft-ai" cx="365" cy="335" r="31"/>
+          ${svgLabel("A",365,95,"ai")}${svgLabel("B",365,175,"ai")}${svgLabel("C",365,255,"result")}${svgLabel("D",365,335,"ai")}
+          ${pic("person",525,158,104,"tone-human","d3")}${pic("search",500,225,72,"tone-human","d3")}${pic("target",690,160,100,"tone-result","d4")}
+          ${svgLabel("你",577,310,"human",true)}
+        `),
+        note: `现实问题通常没有标准答案。AI 可以给出多个可行选项，但在这个客户、这项业务、这个风险条件下应该选什么，仍然需要人理解具体情境后作出选择。`
+      },
+      {
+        chapter: 3, chapterName: "判断力会变贵",
+        claim: `三个部分，组成一次<br><strong>可以负责的决定</strong>`,
+        visual: sceneSvg(`
+          <path class="link human draw" d="M400 205 205 105M400 205l195-100M400 205v150"/>
+          <circle class="soft-human pop" cx="205" cy="105" r="70"/><circle class="soft-human pop d2" cx="595" cy="105" r="70"/><circle class="soft-result pop d3" cx="400" cy="355" r="62"/><circle class="ink-fill" cx="400" cy="205" r="72"/>
+          ${svgLabel("具体场景",205,105,"human",true)}${svgLabel("可能后果",595,105,"human",true)}${svgLabel("承担责任",400,355,"result",true)}${pic("person",358,160,84,"tone-human","d4")}
+          ${svgLabel("判断",400,282,"white",true)}
+        `),
+        note: `判断力来自三样东西：理解具体场景、预估可能后果、对结果承担责任。AI 可以提供十个方案，最终仍要有人说明选择、理由、风险和应对方式。`
+      },
+      {
+        chapter: 4, chapterName: "从知识到结果",
+        claim: `别只证明“我会”，<br>要证明<strong>“我能解决”</strong>`,
+        visual: sceneSvg(`
+          <path class="link result draw" d="M210 210H345M455 210H590"/><path class="result-fill" d="m330 196 24 14-24 14Zm245 0 24 14-24 14Z"/>
+          <circle class="backplate" cx="160" cy="210" r="82"/><circle class="backplate" cx="400" cy="210" r="82"/><circle class="backplate" cx="640" cy="210" r="82"/>
+          ${pic("briefcase",105,155,110,"tone-muted")}${pic("search",345,155,110,"tone-human","d2")}${pic("target",585,155,110,"tone-result","d3")}
+          <text x="400" y="222" class="label human pop d2" style="font-size:46px">?</text>
+          ${svgLabel("会",160,330,"",true)}${svgLabel("解决",400,330,"human",true)}${svgLabel("结果",640,330,"result",true)}
+        `),
+        note: `以前很多人的价值表达是“我会做这个”。未来更有竞争力的表达是：我能帮你解决这个问题，并交付可验证的结果。`
+      },
+      {
+        chapter: 4, chapterName: "从知识到结果",
+        claim: `把技能清单，<br>翻译成<strong>业务结果</strong>`,
+        visual: sceneSvg(`
+          <path class="link result draw" d="M215 210H335M465 210H585"/><path class="ink-fill" d="m320 196 24 14-24 14Z"/><path class="ink-fill" d="m570 196 24 14-24 14Z"/>
+          <circle class="backplate" cx="150" cy="210" r="82"/><rect class="soft-human" x="335" y="125" width="130" height="170" rx="28"/><circle class="backplate" cx="650" cy="210" r="88"/>
+          ${pic("briefcase",95,155,110,"tone-ink")}${pic("person",358,155,84,"tone-human","d2")}${pic("target",595,155,110,"tone-result","d3")}
+          ${svgLabel("技能",150,330,"",true)}${svgLabel("业务",400,330,"human",true)}${svgLabel("结果",650,330,"result",true)}
+        `),
+        note: `同一种能力可以有不同的价值表达。写文案对应咨询和转化，做表格对应经营判断，写代码对应稳定产品，使用 AI 对应更快、更便宜地交付可靠结果。`
+      },
+      {
+        chapter: 4, chapterName: "从知识到结果",
+        claim: `更有价值的交付，<br>发生在工作链条的<strong>后半段</strong>`,
+        visual: sceneSvg(`
+          <path class="link draw" style="stroke-width:8" d="M125 210H675"/><path class="result-fill" d="m660 192 31 18-31 18Z"/>
+          <circle class="backplate" cx="150" cy="210" r="70"/><circle class="backplate" cx="350" cy="210" r="58"/><circle class="backplate" cx="520" cy="210" r="58"/><circle class="backplate" cx="680" cy="210" r="74"/>
+          ${pic("clock",100,160,100,"tone-muted")}${pic("search",305,165,90,"tone-ink","d2")}${pic("fork",475,165,90,"tone-human","d3")}${pic("target",625,155,110,"tone-result","d4")}
+          ${svgLabel("工时",150,320,"",true)}${svgLabel("诊断",350,300,"",true)}${svgLabel("选择",520,300,"human",true)}${svgLabel("结果",680,320,"result",true)}
+        `),
+        note: `工时容易被比较和压价。更有价值的交付发生在链条后半段：问题诊断、方案选择、执行闭环、最终结果和持续改进。`
+      },
+      {
+        chapter: 5, chapterName: "沟通和信任",
+        claim: `稀缺的不是第十一份方案，<br>而是让一群人<strong>相信并执行</strong>`,
+        visual: sceneSvg(`
+          <path class="link result draw" d="M210 210H335M465 210H590"/><path class="ink-fill" d="m320 196 24 14-24 14Z"/><path class="ink-fill" d="m575 196 24 14-24 14Z"/>
+          <circle class="backplate" cx="150" cy="210" r="80"/><circle class="backplate" cx="400" cy="210" r="78"/><circle class="backplate" cx="650" cy="210" r="88"/>
+          ${pic("file",95,155,110,"tone-ai")}${pic("handshake",345,155,110,"tone-human","d2")}${pic("group",595,155,110,"tone-ink","d3")}
+          ${svgLabel("方案",150,330,"ai",true)}${svgLabel("信任",400,330,"human",true)}${svgLabel("执行",650,330,"result",true)}
+        `),
+        note: `当大家都能调用相似的 AI，方案会越来越多。真正稀缺的是让一群人理解、相信并执行一个方案。沟通、协调、信任和承担责任因此变得更重要。`
+      },
+      {
+        chapter: 5, chapterName: "沟通和信任",
+        claim: `听见对方说的，<br>也要看见<strong>没有说出口的</strong>`,
+        visual: sceneSvg(`
+          <path class="link ai" d="M65 170H735"/>
+          <path class="soft-ai pop" d="M255 75h290l-62 95H317Z"/><path class="ink-fill pop d2" d="M317 170h166l182 205H135Z"/>
+          ${pic("chat",350,70,100,"tone-ai")}
+          <text x="400" y="126" class="label ai pop">¥</text>
+          <g class="pop d3"><rect x="300" y="240" width="92" height="65" rx="8" fill="#fff" opacity=".92" transform="rotate(-7 346 272)"/><rect x="395" y="248" width="92" height="65" rx="8" fill="#fff" opacity=".92" transform="rotate(6 441 280)"/><rect x="350" y="305" width="98" height="66" rx="8" fill="#fff" opacity=".92" transform="rotate(-4 399 338)"/></g>
+          <text x="505" y="304" class="label white pop d4" style="font-size:64px">!</text>
+        `),
+        note: `对方嘴上说价格贵，真正的阻力可能是担心交付不稳定。AI 可以生成合作方案，却不会自动获得信任。识别真实顾虑，才能推动事情继续向前。`
+      },
+      {
+        chapter: 6, chapterName: "三层能力",
+        claim: `不是单点最强，<br>而是把<strong>三层能力连起来</strong>`,
+        visual: sceneSvg(`
+          <path class="ink-fill pop" d="M115 300h570l-55 92H170Z"/><path class="ai-fill pop d2" d="M205 190h390l-38 92H243Z"/><path class="human-fill pop d3" d="M300 80h200l-22 92H322Z"/>
+          ${pic("briefcase",330,298,92,"tone-human")}${pic("ai",342,195,82,"tone-ink","d2")}${pic("handshake",350,82,70,"tone-ink","d3")}
+          <text x="235" y="345" class="label white">专业场景</text><text x="300" y="236" class="label white">AI 调度</text><text x="350" y="126" class="label">判断与信任</text>
+        `),
+        note: `普通人最值得建立三层能力：真实的专业能力、AI 调度能力，以及判断、沟通、谈判、组织和信任等人类杠杆能力。`
+      },
+      {
+        chapter: 6, chapterName: "三层能力",
+        claim: `懂真实业务<br>能调动 AI<br><strong>让人愿意采用</strong>`,
+        visual: sceneSvg(`
+          <path class="link result draw" d="M170 105 C285 105 300 210 390 210M170 315C285 315 300 210 390 210M460 210H590"/>
+          <circle class="backplate" cx="120" cy="105" r="70"/><circle class="backplate" cx="120" cy="315" r="70"/><circle class="backplate" cx="420" cy="210" r="78"/><circle class="backplate" cx="650" cy="210" r="90"/>
+          ${pic("briefcase",70,55,100,"tone-ink")}${pic("ai",70,265,100,"tone-ai","d2")}${pic("handshake",370,160,100,"tone-human","d3")}${pic("target",595,155,110,"tone-result","d4")}
+          ${svgLabel("业务",120,195,"",true)}${svgLabel("AI",120,405,"ai",true)}${svgLabel("采用",420,330,"human",true)}${svgLabel("结果",650,330,"result",true)}
+        `),
+        note: `最有竞争力的人不是单独在某一层最强，而是能把三层连起来：懂真实业务，又能调动 AI，还能让别人相信并采用结果。`
+      },
+      {
+        chapter: 7, chapterName: "现实的变化",
+        claim: `更容易被替代的，<br>可能是只等待<strong>明确指令</strong>的人`,
+        visual: sceneSvg(`
+          <line class="link" x1="400" y1="48" x2="400" y2="372"/>
+          <path class="link draw" d="M80 145H315"/><rect class="risk-fill" x="315" y="92" width="28" height="106" rx="8"/>
+          <path class="link result draw" d="M470 320 C545 320 525 210 615 210S665 300 735 300"/>
+          ${pic("person",65,92,100,"tone-muted")}${pic("file",205,105,80,"tone-muted","d2")}<text x="329" y="68" class="label risk">!</text>
+          ${pic("person",440,265,100,"tone-human")}<circle class="risk-fill pop d2" cx="585" cy="260" r="27"/>${pic("flag",690,245,90,"tone-result","d3")}
+          ${svgLabel("标准动作",205,240,"",true)}${svgLabel("处理变化",600,385,"result",true)}
+        `),
+        note: `更容易被替代的未必是能力最差的人，而可能是长期停留在接收明确指令、完成标准动作的人。更有价值的是在信息不完整和过程变化中仍能把事情推到完成。`
+      },
+      {
+        chapter: 7, chapterName: "现实的变化",
+        claim: `真正的分界线，<br>不在“会不会用 AI”`,
+        visual: sceneSvg(`
+          <line class="link" x1="400" y1="55" x2="400" y2="365"/>
+          <path class="link ai draw" d="M120 210H270"/><path class="link result draw" d="M500 210H680"/>
+          ${pic("person",60,160,100,"tone-muted")}${pic("ai",175,160,100,"tone-ai","d2")}${pic("file",285,165,90,"tone-muted","d3")}
+          ${pic("person",430,160,100,"tone-human")}${pic("ai",535,160,100,"tone-ai","d2")}${pic("flag",665,155,110,"tone-result","d4")}
+          ${svgLabel("会用",220,330,"",true)}${svgLabel("负责",590,330,"result",true)}
+        `),
+        note: `真正的分界线可能不是会不会使用 AI，而是能不能借助 AI 独立负责一件事。工具熟练不等于能够对目标、过程和结果负责。`
+      },
+      {
+        chapter: 8, chapterName: "怎么开始",
+        claim: `不用先学完理论，<br>从一件<strong>每周重复两次</strong>的工作开始`,
+        visual: sceneSvg(`
+          <path class="link ai draw" d="M105 115H330M470 115H695M695 115v190H470M330 305H105"/>
+          <path class="ai-fill" d="m316 101 24 14-24 14Zm365 0 24 14-24 14Zm168 190-24 14 24 14Zm-505 0-24 14 24 14Z"/>
+          <circle class="backplate" cx="105" cy="115" r="58"/><circle class="backplate" cx="400" cy="115" r="58"/><circle class="backplate" cx="695" cy="115" r="58"/><circle class="backplate" cx="695" cy="305" r="58"/><circle class="backplate" cx="400" cy="305" r="58"/><circle class="backplate" cx="105" cy="305" r="58"/>
+          ${pic("calendar",65,75,80,"tone-ink")}${pic("ai",360,75,80,"tone-ai","d2")}${pic("search",655,75,80,"tone-result","d3")}${pic("sliders",655,265,80,"tone-human","d4")}${pic("loop",360,265,80,"tone-ai","d5")}${pic("chart",65,265,80,"tone-result","d5")}
+          ${svgLabel("重复",105,190,"",true)}${svgLabel("初稿",400,190,"ai",true)}${svgLabel("检查",695,190,"result",true)}${svgLabel("标准",695,380,"human",true)}${svgLabel("复用",400,380,"ai",true)}${svgLabel("改进",105,380,"result",true)}
+        `),
+        note: `不用先学一大堆 AI 理论。找出每周重复两次以上的真实工作，让 AI 拆解或生成初稿，检查错误，补充判断标准，记录可复用流程，再计算时间和质量的变化。`
+      },
+      {
+        chapter: 8, chapterName: "怎么开始",
+        claim: `每次用完 AI，<br>只复盘<strong>三个问题</strong>`,
+        visual: sceneSvg(`
+          <circle class="soft-result pop" cx="150" cy="210" r="108"/><circle class="soft-human pop d2" cx="400" cy="210" r="108"/><circle class="soft-ai pop d3" cx="650" cy="210" r="108"/>
+          ${pic("target",95,155,110,"tone-result")}${pic("fork",345,155,110,"tone-human","d2")}${pic("loop",595,155,110,"tone-ai","d3")}
+          ${svgLabel("结果？",150,345,"result")}${svgLabel("判断？",400,345,"human")}${svgLabel("复用？",650,345,"ai")}
+        `),
+        note: `练习重点不是 AI 回答得多漂亮，而是三个问题：它帮我完成了什么真实结果？哪些环节仍然必须由我判断？下次能否更稳定、更快地重复？`
+      },
+      {
+        chapter: 9, chapterName: "结论",
+        claim: `不是“什么都让 AI 做”，<br>而是把人的责任放在<strong>更关键的位置</strong>`,
+        visual: sceneSvg(`
+          <path class="link result draw" d="M180 210H305M475 210H610"/><path class="ink-fill" d="m290 196 24 14-24 14Z"/><path class="result-fill" d="m595 196 24 14-24 14Z"/>
+          <circle class="backplate" cx="120" cy="210" r="70"/><rect class="soft-ai" x="305" y="125" width="170" height="170" rx="32"/><circle class="backplate" cx="670" cy="210" r="95"/>
+          <text x="120" y="225" class="label pop" style="font-size:64px">?</text>${pic("person",330,155,90,"tone-human","d2")}${pic("ai",390,175,70,"tone-ai","d2")}${pic("shield",615,155,110,"tone-result","d3")}
+          ${svgLabel("问题",120,315,"",true)}${svgLabel("你 + AI",390,330,"ai",true)}${svgLabel("负责结果",670,335,"result")}
+        `),
+        note: `AI 增强型的人不是“什么都让 AI 做”，而是比以前更快地理解问题、更低成本地试错、更可靠地作出判断，并对最后的结果负责。`
+      }
+    ];
+
+    // 20 页统一视觉叙事。先画关系线、后画节点；任何线都不会横切图标。
+    const standardizedVisuals = [
+      systemFlow([
+        { icon: "help", label: "模糊问题" },
+        { icon: "user", label: "你", tone: "tone-human" },
+        { icon: "bot", label: "AI", tone: "tone-ai" },
+        { icon: "target", label: "可靠结果", tone: "tone-result", result: true },
+        { icon: "users", label: "被采用", tone: "tone-result", result: true }
+      ], [70, 235, 400, 565, 730], 190, 86),
+
+      systemSvg(`
+        <line x1="400" y1="70" x2="400" y2="325" class="system-divider"/>
+        ${systemLink(158, 190, 242, 190)}${systemLink(558, 190, 642, 190)}
+        ${systemNode({ icon: "file", label: "重复任务" }, 100, 190, 96)}
+        ${systemNode({ icon: "bot", label: "加速执行", tone: "tone-ai", delay: "d2" }, 300, 190, 96)}
+        ${systemNode({ icon: "user", label: "判断方向", tone: "tone-human", delay: "d3" }, 500, 190, 96)}
+        ${systemNode({ icon: "shield", label: "承担责任", tone: "tone-result", result: true, delay: "d4" }, 700, 190, 96)}
+      `),
+
+      systemSvg(`
+        <rect x="35" y="58" width="300" height="290" rx="24" class="system-panel"/>
+        <rect x="375" y="58" width="390" height="290" rx="24" class="system-panel"/>
+        <text x="185" y="92" class="system-label muted small">只交中间产物</text>
+        <text x="570" y="92" class="system-label result small">把问题推到结果</text>
+        ${systemNode({ icon: "file", label: "文档" }, 185, 200, 104)}
+        ${systemLink(493, 200, 527, 200)}${systemLink(613, 200, 647, 200)}
+        ${systemNode({ icon: "search", label: "诊断", tone: "tone-human" }, 450, 200, 76)}
+        ${systemNode({ icon: "flask", label: "测试", tone: "tone-ai", delay: "d2" }, 570, 200, 76)}
+        ${systemNode({ icon: "target", label: "结果", tone: "tone-result", result: true, delay: "d3" }, 690, 200, 76)}
+      `),
+
+      systemSvg(`
+        <circle cx="400" cy="200" r="130" class="system-link draw"/>
+        <path d="M446 79A130 130 0 0 1 475 94" class="system-link" marker-end="url(#system-arrow)"/>
+        ${systemNode({ icon: "help", label: "问题", labelGap: 20 }, 400, 70, 60)}
+        ${systemNode({ icon: "bot", label: "资源", tone: "tone-ai", delay: "d2", labelGap: 20 }, 513, 135, 60)}
+        ${systemNode({ icon: "search", label: "验证", delay: "d3", labelGap: 20 }, 513, 265, 60)}
+        ${systemNode({ icon: "scale", label: "决策", tone: "tone-human", delay: "d4", labelPosition: "top", labelGap: 16 }, 400, 330, 60)}
+        ${systemNode({ icon: "route", label: "执行", delay: "d5", labelGap: 20 }, 287, 265, 60)}
+        ${systemNode({ icon: "target", label: "结果", tone: "tone-result", result: true, delay: "d5", labelGap: 20 }, 287, 135, 60)}
+        <text x="400" y="200" class="system-label result">完整闭环</text>
+      `),
+
+      systemFlow([
+        { icon: "file", label: "标准任务" },
+        { icon: "bot", label: "AI 生成", tone: "tone-ai" },
+        { icon: "check", label: "基本合格" },
+        { icon: "clock", label: "更快更便宜", tone: "tone-result", result: true }
+      ], [95, 300, 505, 710], 190, 94),
+
+      systemFlow([
+        { icon: "book", label: "记住知识" },
+        { icon: "search", label: "核验答案", tone: "tone-ai" },
+        { icon: "scale", label: "关键决策", tone: "tone-human" }
+      ], [140, 400, 660], 190, 108),
+
+      systemFlow([
+        { icon: "bot", label: "给出选项", tone: "tone-ai" },
+        { icon: "route", label: "比较方案" },
+        { icon: "scale", label: "人来拍板", tone: "tone-human" },
+        { icon: "target", label: "具体结果", tone: "tone-result", result: true }
+      ], [95, 300, 505, 710], 190, 94),
+
+      systemSvg(`
+        <path d="M200 70H290C410 70 435 190 545 210" class="system-link draw"/>
+        <path d="M200 210H545" class="system-link draw"/>
+        <path d="M200 350H290C410 350 435 230 545 210" class="system-link draw"/>
+        <path d="M545 210H586" class="system-link draw" marker-end="url(#system-arrow)"/>
+        ${systemNode({ icon: "briefcase", label: "具体场景", labelGap: 20 }, 150, 70, 80)}
+        ${systemNode({ icon: "route", label: "可能后果", delay: "d2", labelGap: 20 }, 150, 210, 80)}
+        ${systemNode({ icon: "shield", label: "承担责任", delay: "d3", labelGap: 20 }, 150, 350, 80)}
+        ${systemNode({ icon: "scale", label: "判断", tone: "tone-human", delay: "d4", labelGap: 26 }, 650, 210, 108)}
+      `),
+
+      systemFlow([
+        { icon: "briefcase", label: "我会" },
+        { icon: "help", label: "解决问题", tone: "tone-human" },
+        { icon: "target", label: "交付结果", tone: "tone-result", result: true }
+      ], [140, 400, 660], 190, 108),
+
+      systemFlow([
+        { icon: "briefcase", label: "技能" },
+        { icon: "user", label: "业务", tone: "tone-human" },
+        { icon: "target", label: "结果", tone: "tone-result", result: true }
+      ], [140, 400, 660], 190, 108),
+
+      systemFlow([
+        { icon: "clock", label: "工时" },
+        { icon: "search", label: "诊断" },
+        { icon: "scale", label: "选择", tone: "tone-human" },
+        { icon: "target", label: "结果", tone: "tone-result", result: true }
+      ], [95, 300, 505, 710], 190, 94),
+
+      systemFlow([
+        { icon: "file", label: "方案", tone: "tone-ai" },
+        { icon: "handshake", label: "信任", tone: "tone-human" },
+        { icon: "users", label: "共同执行", tone: "tone-result", result: true }
+      ], [140, 400, 660], 190, 108),
+
+      systemSvg(`
+        <path d="M400 162V238" class="system-link dotted draw" marker-end="url(#system-arrow)"/>
+        ${systemNode({ icon: "message", label: "说出口：价格", tone: "tone-ai" }, 400, 105, 104)}
+        ${systemNode({ icon: "shield", label: "没说出口：稳定性", tone: "tone-result", result: true, delay: "d3" }, 400, 295, 104)}
+      `),
+
+      systemSvg(`
+        <rect x="275" y="30" width="250" height="92" rx="20" class="system-panel"/>
+        <rect x="210" y="158" width="380" height="92" rx="20" class="system-panel"/>
+        <rect x="145" y="286" width="510" height="92" rx="20" class="system-panel"/>
+        ${systemIcon("handshake", 330, 76, 44)}<text x="445" y="76" class="system-label">人类杠杆</text>
+        <g class="tone-ai">${systemIcon("bot", 280, 204, 44)}</g><text x="445" y="204" class="system-label ai">AI 调度</text>
+        ${systemIcon("briefcase", 230, 332, 44)}<text x="445" y="332" class="system-label">专业场景</text>
+      `),
+
+      systemSvg(`
+        <path d="M150 163C150 235 325 235 365 270" class="system-link draw" marker-end="url(#system-arrow)"/>
+        <path d="M400 163V270" class="system-link draw" marker-end="url(#system-arrow)"/>
+        <path d="M650 163C650 235 475 235 435 270" class="system-link draw" marker-end="url(#system-arrow)"/>
+        ${systemNode({ icon: "briefcase", label: "业务", labelPosition: "top", labelGap: 24 }, 150, 110, 90)}
+        ${systemNode({ icon: "bot", label: "AI", tone: "tone-ai", delay: "d2", labelPosition: "top", labelGap: 24 }, 400, 110, 90)}
+        ${systemNode({ icon: "handshake", label: "采用", tone: "tone-human", delay: "d3", labelPosition: "top", labelGap: 24 }, 650, 110, 90)}
+        ${systemNode({ icon: "target", label: "可靠结果", tone: "tone-result", result: true, delay: "d4" }, 400, 330, 104)}
+      `),
+
+      systemSvg(`
+        <line x1="72" y1="210" x2="728" y2="210" class="system-divider"/>
+        <text x="90" y="82" class="system-label muted small" text-anchor="start">标准路径</text>
+        <text x="90" y="252" class="system-label result small" text-anchor="start">负责路径</text>
+        ${systemLink(267, 120, 353, 120)}${systemLink(447, 120, 533, 120)}
+        ${systemLink(267, 300, 353, 300)}${systemLink(447, 300, 533, 300)}
+        ${systemNode({ icon: "user", label: "等指令" }, 220, 120, 74)}
+        ${systemNode({ icon: "file", label: "标准动作", delay: "d2" }, 400, 120, 74)}
+        ${systemNode({ icon: "help", label: "遇变化停下", delay: "d3" }, 580, 120, 74)}
+        ${systemNode({ icon: "search", label: "主动澄清", tone: "tone-human" }, 220, 300, 74)}
+        ${systemNode({ icon: "route", label: "调整路径", delay: "d2" }, 400, 300, 74)}
+        ${systemNode({ icon: "flag", label: "推到完成", tone: "tone-result", result: true, delay: "d3" }, 580, 300, 74)}
+      `),
+
+      systemSvg(`
+        <line x1="400" y1="55" x2="400" y2="355" class="system-divider"/>
+        ${systemNode({ icon: "bot", label: "会用 AI", tone: "tone-ai" }, 220, 190, 126)}
+        ${systemNode({ icon: "shield", label: "独立负责", tone: "tone-result", result: true, delay: "d3" }, 580, 190, 126)}
+      `),
+
+      systemFlow([
+        { icon: "calendar", label: "重复" },
+        { icon: "bot", label: "初稿", tone: "tone-ai" },
+        { icon: "search", label: "检查" },
+        { icon: "sliders", label: "标准", tone: "tone-human" },
+        { icon: "refresh", label: "复用", tone: "tone-ai" },
+        { icon: "chart", label: "改进", tone: "tone-result", result: true }
+      ], [68, 201, 334, 467, 600, 733], 190, 72),
+
+      systemFlow([
+        { icon: "target", label: "真实结果？", tone: "tone-result", result: true },
+        { icon: "scale", label: "人来判断？", tone: "tone-human" },
+        { icon: "refresh", label: "能否复用？", tone: "tone-ai" }
+      ], [140, 400, 660], 190, 108),
+
+      systemFlow([
+        { icon: "help", label: "理解问题" },
+        { icon: "bot", label: "快速试错", tone: "tone-ai" },
+        { icon: "scale", label: "作出判断", tone: "tone-human" },
+        { icon: "shield", label: "负责结果", tone: "tone-result", result: true }
+      ], [95, 300, 505, 710], 190, 94)
+    ];
+
+    slides.forEach((slide, index) => { slide.visual = standardizedVisuals[index]; });
+
+    const stage = document.getElementById("stage");
+    const progressFill = document.getElementById("progressFill");
+    const consoleTitle = document.getElementById("consoleTitle");
+    const counter = document.getElementById("counter");
+    const notes = document.getElementById("notes");
+    const prevButton = document.getElementById("prevButton");
+    const nextButton = document.getElementById("nextButton");
+    const playButton = document.getElementById("playButton");
+    const modelLabels = ["专业场景", "AI 调度", "判断决策", "信任协作", "结果责任"];
+    const phaseBySlide = [4, 1, 4, 4, 1, 0, 2, 2, 4, 4, 4, 3, 3, 0, 3, 2, 4, 1, 4, 4];
+
+    function slideTemplate(slide, i) {
+      return `<article class="slide" data-slide="${i}" aria-label="${slide.chapterName}">
+        <header class="slide-head">
+          <span class="chapter-number">${String(slide.chapter).padStart(2, "0")}</span>
+          <span class="chapter-name">${slide.chapterName}</span>
+          <span class="slide-count">${String(i + 1).padStart(2, "0")} / ${String(slides.length).padStart(2, "0")}</span>
+        </header>
+        <h1 class="claim">${slide.claim}</h1>
+        <div class="visual">${slide.visual}</div>
+        <footer class="slide-foot"><div class="model-rail">${modelLabels.map((label, phase) => `<span class="model-step ${phase === phaseBySlide[i] ? "is-active" : ""}">${label}</span>`).join("")}</div></footer>
+      </article>`;
+    }
+
+    stage.insertAdjacentHTML("afterbegin", slides.map(slideTemplate).join(""));
+    const slideElements = [...stage.querySelectorAll(".slide")];
+    let current = 0;
+    let isPlaying = false;
+    let timer = null;
+
+    function render(next, replay = false) {
+      current = (next + slides.length) % slides.length;
+      slideElements.forEach((el, i) => {
+        el.classList.toggle("is-active", i === current);
+        if (replay && i === current) {
+          el.classList.remove("is-active");
+          void el.offsetWidth;
+          el.classList.add("is-active");
+        }
+      });
+      const slide = slides[current];
+      progressFill.style.width = `${((current + 1) / slides.length) * 100}%`;
+      consoleTitle.textContent = `${String(slide.chapter).padStart(2, "0")} · ${slide.chapterName}`;
+      counter.textContent = `${String(current + 1).padStart(2, "0")} / ${String(slides.length).padStart(2, "0")}`;
+      notes.textContent = slide.note;
+      if (isPlaying) schedule();
+    }
+
+    function schedule() {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (current === slides.length - 1) {
+          stop();
+          return;
+        }
+        render(current + 1, true);
+      }, 15000);
+    }
+
+    function play() {
+      isPlaying = true;
+      playButton.textContent = "暂停";
+      schedule();
+    }
+
+    function stop() {
+      isPlaying = false;
+      playButton.textContent = "自动播放";
+      clearTimeout(timer);
+    }
+
+    prevButton.addEventListener("click", () => render(current - 1, true));
+    nextButton.addEventListener("click", () => render(current + 1, true));
+    playButton.addEventListener("click", () => isPlaying ? stop() : play());
+
+    window.addEventListener("keydown", event => {
+      if (["INPUT", "SELECT", "TEXTAREA"].includes(document.activeElement?.tagName)) return;
+      if (event.key === "ArrowRight") render(current + 1, true);
+      if (event.key === "ArrowLeft") render(current - 1, true);
+      if (event.key.toLowerCase() === "r") render(current, true);
+      if (event.code === "Space") { event.preventDefault(); isPlaying ? stop() : play(); }
+    });
+
+    const params = new URLSearchParams(location.search);
+    if (params.get("clean") === "1") document.body.classList.add("clean");
+    render(0, true);
+    if (params.get("autoplay") === "1") play();
+  </script>
+</body>
+</html>

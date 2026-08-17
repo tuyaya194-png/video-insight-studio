@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Video Insight Studio turns long or foreign-language videos into source-grounded analysis, a multilingual deep-reading HTML, and a visual review HTML.">
+  <title>Video Insight Studio</title>
+  <style>
+    :root { --ink:#13233c; --muted:#6a788b; --paper:#f2f4f6; --line:#cbd2db; --ai:#2f6fed; --human:#f5ae36; --result:#278c70; }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin:0; color:var(--ink); background:var(--paper); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif; }
+    a { color:inherit; }
+    .shell { width:min(1180px,calc(100% - 40px)); margin:auto; }
+    nav { display:flex; justify-content:space-between; align-items:center; min-height:76px; gap:20px; }
+    nav strong { font-size:18px; }
+    nav div { display:flex; gap:20px; color:var(--muted); font-size:14px; }
+    .hero { overflow:hidden; border-radius:28px; box-shadow:0 30px 70px rgba(19,35,60,.16); }
+    .hero img { width:100%; display:block; }
+    .intro { max-width:850px; margin:70px auto; text-align:center; }
+    .eyebrow { color:var(--result); font-size:13px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
+    h1,h2,p { margin-top:0; }
+    h1 { margin-bottom:20px; font-size:clamp(38px,5vw,68px); line-height:1.06; }
+    h2 { font-size:clamp(28px,3.5vw,44px); }
+    .intro p,.section-copy { color:var(--muted); font-size:clamp(17px,2vw,21px); line-height:1.75; }
+    .actions { display:flex; flex-wrap:wrap; justify-content:center; gap:12px; margin-top:30px; }
+    .button { display:inline-flex; min-height:48px; align-items:center; padding:0 20px; border:1px solid var(--line); border-radius:999px; text-decoration:none; font-weight:750; }
+    .button.primary { color:#fff; background:var(--ink); border-color:var(--ink); }
+    .support-bar { display:flex; flex-wrap:wrap; justify-content:center; gap:6px 12px; max-width:900px; margin:28px auto 0; padding:18px 22px; color:var(--muted); background:rgba(255,255,255,.58); border:1px solid var(--line); border-radius:18px; line-height:1.65; }
+    .support-bar strong { color:var(--ink); }
+    .support-bar small { flex-basis:100%; font-size:14px; }
+    section { padding:64px 0; }
+    .value-grid { display:grid; grid-template-columns:1fr 1fr; gap:0 42px; margin-top:30px; border-top:1px solid var(--line); }
+    .value-item { padding:24px 0; border-bottom:1px solid var(--line); }
+    .value-item strong { display:block; margin-bottom:8px; font-size:21px; }
+    .value-item p { margin:0; color:var(--muted); line-height:1.7; }
+    .case-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:18px; margin-top:32px; }
+    .case-step { margin:0; }
+    .case-shot { position:relative; overflow:hidden; aspect-ratio:3/4; background:#e6e9ed; border:1px solid var(--line); border-radius:20px; box-shadow:0 16px 34px rgba(19,35,60,.1); }
+    .case-shot img { width:100%; height:100%; display:block; object-fit:contain; }
+    .case-step figcaption { padding:16px 2px 0; }
+    .case-step small { display:block; margin-bottom:7px; color:var(--ai); font-size:12px; font-weight:800; letter-spacing:.1em; }
+    .case-step:nth-child(4) small { color:var(--result); }
+    .case-step strong { display:block; margin-bottom:7px; font-size:19px; }
+    .case-step p { margin:0; color:var(--muted); font-size:14px; line-height:1.6; }
+    .case-links { display:flex; flex-wrap:wrap; gap:12px; margin-top:26px; }
+    .case-links a { font-weight:760; text-decoration:none; border-bottom:1px solid var(--line); padding-bottom:3px; }
+    .demo-grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+    .demo-card { display:flex; flex-direction:column; padding:28px; background:#fff; border:1px solid var(--line); border-radius:24px; }
+    .demo-card small { color:var(--ai); font-weight:800; letter-spacing:.1em; }
+    .demo-card.presentation small { color:var(--result); }
+    .demo-card h3 { margin:14px 0 10px; font-size:28px; }
+    .demo-card p { min-height:58px; color:var(--muted); line-height:1.65; }
+    .demo-card a { display:inline-flex; align-self:flex-start; margin-top:auto; padding-top:18px; font-weight:780; text-decoration:none; }
+    .language-line { display:flex; flex-wrap:wrap; gap:8px; min-height:auto!important; margin:18px 0 0; }
+    .language-line span { padding:6px 10px; color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:999px; font-size:13px; font-weight:750; }
+    .trust-note { margin-top:24px; padding:22px 24px; color:var(--muted); background:rgba(255,255,255,.58); border:1px solid var(--line); border-radius:20px; line-height:1.75; }
+    .trust-note strong { color:var(--ink); }
+    .workflow { width:100%; display:block; margin-top:32px; border-radius:24px; }
+    pre { overflow:auto; padding:24px; color:#eaf0f8; background:var(--ink); border-radius:20px; font:600 14px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace; }
+    footer { margin-top:60px; padding:32px 0 46px; color:var(--muted); border-top:1px solid var(--line); font-size:14px; }
+    @media (max-width:960px) { .case-grid { grid-template-columns:repeat(2,1fr); gap:28px 18px; } }
+    @media (max-width:760px) { nav div { display:none; } .shell { width:min(100% - 24px,1180px); } .demo-grid,.value-grid { grid-template-columns:1fr; } .value-grid { gap:0; } .case-grid { grid-template-columns:1fr 1fr; gap:24px 12px; } .case-shot { border-radius:14px; } .case-step strong { font-size:16px; } .case-step p { font-size:13px; } .intro { margin:50px auto; } section { padding:44px 0; } }
+    @media (max-width:520px) { .case-grid { grid-template-columns:1fr; gap:36px; } .case-step strong { font-size:19px; } .case-step p { font-size:14px; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <nav>
+      <strong>Video Insight Studio</strong>
+      <div><a href="#difference">Why it works</a><a href="#case">Example</a><a href="#workflow">Workflow</a><a href="#install">Install</a></div>
+    </nav>
+
+    <div class="hero"><img src="images/hero.svg" alt="Video Insight Studio workflow"></div>
+
+    <header class="intro">
+      <div class="eyebrow">An Agent Skill for Codex</div>
+      <h1>Understand the video, even when the language or length gets in the way</h1>
+      <p>For people who cannot follow the source language, do not have time to watch the full recording, or want more than a shallow summary. It turns videos, subtitles, interviews, and podcast transcripts into source-grounded analysis with two reading modes: deep reading and fast visual review.</p>
+      <div class="actions">
+        <a class="button primary" href="#case">See the complete example</a>
+        <a class="button" href="https://github.com/tuyaya194-png/video-insight-studio">View on GitHub</a>
+      </div>
+      <div class="support-bar">
+        <strong>Verified inputs:</strong><span>public YouTube videos with accessible captions, SRT / VTT / TXT files, and pasted transcripts.</span>
+        <small>Other platform URLs are checked before processing. If access is blocked, provide subtitles or a transcript instead. Local media requires speech-to-text support in the current environment.</small>
+      </div>
+    </header>
+
+    <section id="difference">
+      <div class="eyebrow">Why it is different</div>
+      <h2>It does not merely shorten a video. It makes the argument easier to understand.</h2>
+      <div class="value-grid">
+        <div class="value-item"><strong>Cross the language barrier</strong><p>Choose Chinese, English, or paired bilingual pages without first understanding the source language.</p></div>
+        <div class="value-item"><strong>Use two reading speeds</strong><p>Scan the visual structure first, then open the deep-reading version for arguments, examples, and boundaries.</p></div>
+        <div class="value-item"><strong>Map the argument before summarizing</strong><p>Extract the thesis, supporting claims, evidence, and logical sequence instead of collecting isolated quotes.</p></div>
+        <div class="value-item"><strong>Find the practical relevance</strong><p>Explain what the ideas mean for work, learning, time, income, and risk, then identify a testable next step.</p></div>
+        <div class="value-item"><strong>Preserve uncertainty and boundaries</strong><p>Separate the speaker's claims, examples, analyst interpretation, and verifiable facts.</p></div>
+        <div class="value-item"><strong>Keep the result as durable HTML</strong><p>Single-file, searchable, and reopenable offline—without PowerPoint or a temporary localhost link.</p></div>
+      </div>
+    </section>
+
+    <section id="case">
+      <div class="eyebrow">Real example · Becoming AI-augmented</div>
+      <h2>One public talk, four reviewable outputs</h2>
+      <p class="section-copy">This example starts with a Stanford CS talk on YouTube, then shows the source record, the viewpoint-analysis manuscript, and two HTML reading experiences. The final screenshots intentionally use Chinese to demonstrate cross-language output from an English-language source.</p>
+      <div class="case-grid">
+        <figure class="case-step">
+          <div class="case-shot"><img src="images/case-source.svg" alt="Source video record"></div>
+          <figcaption><small>01 · SOURCE</small><strong>Select a public video</strong><p>Preserve the platform, topic, and original link for later verification.</p></figcaption>
+        </figure>
+        <figure class="case-step">
+          <div class="case-shot"><img src="images/case-analysis.svg" alt="Viewpoint-analysis manuscript preview"></div>
+          <figcaption><small>02 · ANALYZE</small><strong>Map claims and relevance</strong><p>Separate the argument, its boundaries, and useful applications.</p></figcaption>
+        </figure>
+        <figure class="case-step">
+          <div class="case-shot"><img src="images/case-text-html.png" alt="Actual Chinese deep-reading HTML screenshot"></div>
+          <figcaption><small>03 · DEEP READ</small><strong>Deep-reading HTML</strong><p>Keep the explanation, examples, boundaries, and possible actions.</p></figcaption>
+        </figure>
+        <figure class="case-step">
+          <div class="case-shot"><img src="images/case-visual-html.png" alt="Actual Chinese visual review HTML screenshot"></div>
+          <figcaption><small>04 · VISUAL REVIEW</small><strong>Visual review HTML</strong><p>One claim and one visual relationship per page for fast recall.</p></figcaption>
+        </figure>
+      </div>
+      <div class="case-links">
+        <a href="https://www.youtube.com/watch?v=BBl8bNJP6ds&amp;list=PLoROMvodv4rOAe_DtQYOCKy6_x3irEYV1&amp;index=2">Open the source video ↗</a>
+        <a href="../examples/ai-augmented-person/analysis.zh-CN.md">Read the analysis manuscript →</a>
+        <a href="demo/text/index.html?clean=1&amp;autoplay=1">Open the deep-reading version →</a>
+        <a href="demo/presentation/index.html?clean=1">Open the visual review →</a>
+      </div>
+    </section>
+
+    <section id="demo">
+      <div class="eyebrow">Complete 20-page example</div>
+      <h2>The same argument at two reading depths</h2>
+      <p class="section-copy">The deep-reading version supports full understanding, saving, and repeated reference. The visual version compresses every page into one core claim and one relationship for fast scanning and later recall.</p>
+      <div class="demo-grid">
+        <article class="demo-card">
+          <small>DEEP-READING HTML</small>
+          <h3>Understand and revisit</h3>
+          <p>Includes explanations, examples, boundaries, and possible actions in the language mode you choose.</p>
+          <p class="language-line"><span>Chinese</span><span>English</span><span>Bilingual</span></p>
+          <a href="demo/text/index.html?clean=1&autoplay=1">Open deep reading →</a>
+        </article>
+        <article class="demo-card presentation">
+          <small>VISUAL REVIEW HTML</small>
+          <h3>Recall the logic quickly</h3>
+          <p>Pairs one core claim with one concise relationship diagram for scanning now and reviewing later.</p>
+          <a href="demo/presentation/index.html?clean=1">Open visual review →</a>
+        </article>
+      </div>
+      <div class="trust-note"><strong>Copyright-aware by design:</strong> the workflow preserves the original source and link, then creates analysis, paraphrase, and reading aids. It does not reproduce the full transcript, source media, or other protected material, and it does not replace the original video. Confirm the necessary rights before public or commercial use.</div>
+      <img class="workflow" src="images/dual-output.svg" alt="Deep-reading and visual-review HTML comparison">
+    </section>
+
+    <section id="workflow">
+      <div class="eyebrow">Workflow</div>
+      <h2>Analyze first. Design second.</h2>
+      <p class="section-copy">The skill separates source evidence, speaker claims, examples, analytical interpretation, and applicability before designing any page. Both HTML versions come from one shared content master, then receive structural validation and browser-based visual QA.</p>
+    </section>
+
+    <section id="install">
+      <div class="eyebrow">Install</div>
+      <h2>Add the skill to Codex</h2>
+      <pre>gh skill install tuyaya194-png/video-insight-studio video-to-insight-html \
+  --agent codex \
+  --scope user</pre>
+      <p class="section-copy">After installation, ask: “Use <strong>$video-to-insight-html</strong> to analyze this video, create a bilingual deep-reading version, and generate the visual review HTML.”</p>
+    </section>
+
+    <footer>Video Insight Studio · MIT licensed · local first · offline-ready HTML</footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,30 @@
+name: Validate skill and templates
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile helper scripts
+        run: |
+          python -m py_compile \
+            skills/video-to-insight-html/scripts/create_project.py \
+            skills/video-to-insight-html/scripts/serve_previews.py \
+            skills/video-to-insight-html/scripts/validate_project.py
+      - name: Validate bundled HTML templates
+        run: |
+          python skills/video-to-insight-html/scripts/validate_project.py \
+            --text-dir skills/video-to-insight-html/assets/text-version \
+            --presentation-dir skills/video-to-insight-html/assets/presentation-version
+      - name: Validate release structure
+        run: python scripts/check_release.py

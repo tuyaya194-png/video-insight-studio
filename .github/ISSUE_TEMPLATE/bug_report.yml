@@ -1,0 +1,38 @@
+name: Bug report
+description: Report a reproducible analysis, HTML, preview, or validation problem.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Source analysis
+        - Readable text HTML
+        - Presentation visual HTML
+        - Project creation
+        - Preview server
+        - Validation
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Include the page number and viewport size for visual bugs.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal reproduction
+      description: Do not include private transcripts, cookies, secrets, or personal data.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
