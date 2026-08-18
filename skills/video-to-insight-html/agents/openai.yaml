@@ -1,4 +1,4 @@
 interface:
   display_name: "Video Insight Studio"
   short_description: "Analyze long videos and generate two reviewable HTML experiences"
-  default_prompt: "Use $video-to-insight-html to analyze this video or transcript, map its argument, identify practical relevance, risks, and testable actions, then create a Chinese, English, or bilingual deep-reading HTML and a visual review HTML."
+  default_prompt: "Use $video-to-insight-html on this video or transcript: <URL or text>. Use the defaults and guide me only if required."

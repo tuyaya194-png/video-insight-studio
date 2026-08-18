@@ -68,6 +68,21 @@ To prevent post-install surprises, the repository only labels verified entry pat
 
 ## Quick start
 
+### Already installed? Start with one line
+
+```text
+Use $video-to-insight-html on this video: <URL>
+```
+
+That is enough to begin. Unless you say otherwise, the skill will:
+
+- use your conversation language for the deep-reading version;
+- focus on the core argument and practical relevance for ordinary people;
+- create both the deep-reading and visual-review HTML versions;
+- check source and caption availability before committing to the full workflow.
+
+You can optionally add a preference such as `bilingual`, `focus on career decisions`, or `deep-reading HTML only`. If the source cannot be read, the skill will immediately ask for subtitles, a transcript, or a local file instead of making you troubleshoot the platform.
+
 ### Install with GitHub CLI
 
 ```bash
@@ -87,13 +102,13 @@ $skill-installer install https://github.com/tuyaya194-png/video-insight-studio/t
 Restart Codex after installation, then invoke the skill explicitly:
 
 ```text
-Use $video-to-insight-html to analyze this video, create the deep-reading HTML in bilingual mode, and generate the visual review HTML: <URL>
+Use $video-to-insight-html on this video: <URL>
 ```
 
-Chinese prompt:
+Optional customized prompt:
 
 ```text
-使用 $video-to-insight-html 分析这个视频，提炼普通人最相关的观点；文字精读版使用中英双语，并生成图形速览版 HTML：<视频链接>
+Use $video-to-insight-html on this video. Use bilingual output and focus on career decisions: <URL>
 ```
 
 ## What it produces

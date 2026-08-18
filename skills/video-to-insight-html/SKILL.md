@@ -1,6 +1,6 @@
 ---
 name: video-to-insight-html
-description: Turn captioned YouTube videos, subtitle files, transcripts, interviews, or local media into source-grounded viewpoint analysis, then generate two 3:4 single-file HTML experiences: a Chinese, English, or bilingual deep-reading version and a visual review version for fast understanding and recall. Use for video analysis, video summaries, transcript analysis, cross-language reading, and long-video review.
+description: "Turn captioned YouTube videos, subtitle files, transcripts, interviews, or local media into source-grounded viewpoint analysis, then generate two 3:4 single-file HTML experiences: a Chinese, English, or bilingual deep-reading version and a visual review version for fast understanding and recall. Use for video analysis, video summaries, transcript analysis, cross-language reading, and long-video review."
 ---
 
 # Video Insight Studio
@@ -29,6 +29,33 @@ Turn source material into a complete chain: **source-grounded analysis → share
 | X, Bilibili, Xiaohongshu, and other platform URLs | Best effort, not promised | Process only when the current environment can legally read the content. Otherwise request subtitles, a transcript, or a local file immediately. |
 
 For every URL, run a read-only availability check before committing to delivery. Fail early with a clear fallback instead of making the user install or wait before learning the content is inaccessible.
+
+## First-run onboarding and defaults
+
+Treat the user's first successful result—not documentation coverage—as the onboarding goal. Do not require the user to read the repository or understand every output option before starting.
+
+When the user invokes the skill without source material, ask for exactly one of these entry paths in a compact message:
+
+1. A public YouTube URL with accessible captions.
+2. An `.srt`, `.vtt`, or `.txt` subtitle or transcript file.
+3. Pasted transcript, interview, podcast, or video text.
+
+State the defaults in the same message: use the conversation language for the deep-reading version, focus on the core argument and practical relevance for ordinary people, and create both HTML versions. Mention that the user can request Chinese, English, bilingual output, or a different focus, but do not make those choices mandatory.
+
+When the user already provides a usable source, do not block progress with a preference questionnaire. Run the availability check, apply the defaults, and begin. Ask a follow-up only when a missing choice would materially change the result or the source cannot be accessed.
+
+After the availability check, give one short kickoff summary:
+
+```text
+Source: accessible / blocked
+Language: conversation language unless requested otherwise
+Focus: core argument + practical relevance for ordinary people
+Outputs: deep-reading HTML + visual review HTML
+```
+
+If the source is blocked, stop early and say what will unblock the work: upload subtitles, paste a transcript, or provide a readable local file. Do not make the user troubleshoot platform restrictions.
+
+After delivery, offer only the most useful next adjustments: change language, change analytical focus, shorten or expand the output, or regenerate one version. Do not end with a list of every supported option.
 
 ## Required references
 
